@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { LogOut, User, ShieldAlert, Users, Shield, RefreshCw, Mail, ArrowLeft, FileText, Upload, FileUp } from "lucide-react";
+import { LogOut, User, ShieldAlert, Users, Shield, RefreshCw, Mail, ArrowLeft, FileText, Upload, FileUp, Trash2 } from "lucide-react";
 import { supabase, Profile, UserRole } from "@/lib/supabase";
+import { DashboardLayout } from "@/app/components/DashboardLayout";
 
 export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -48,6 +49,21 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
       await fetchUsers();
     } else {
       console.error("Failed to update role:", error);
+    }
+    setUpdatingId(null);
+  };
+
+  const handleRemoveUser = async (userId: string) => {
+    if (!window.confirm("Are you sure you want to remove this member? This action cannot be undone.")) return;
+    
+    setUpdatingId(userId);
+    const { error } = await supabase.from("profiles").delete().eq("id", userId);
+    
+    if (!error) {
+      await fetchUsers();
+    } else {
+      console.error("Failed to remove member:", error);
+      alert("Failed to remove member: " + error.message);
     }
     setUpdatingId(null);
   };
@@ -180,48 +196,18 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
     onNavigate("home");
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#0a0a0a" }}>
-        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen pt-16" style={{ backgroundColor: "#0a0a0a" }}>
-      {/* Top bar */}
-      <div className="border-b border-white/8 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <p className="text-white/30 text-xs tracking-[0.25em] uppercase mb-0.5 flex items-center gap-2" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-              <ShieldAlert size={12} className="text-red-400" /> Admin Control Center
-            </p>
-            <p className="text-white font-black text-lg" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-              Welcome back, {profile?.full_name?.split(" ")[0] ?? "Admin"}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-white/60 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>Admin Access</p>
-              <p className="text-white/30 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>{profile?.email}</p>
-            </div>
-            <div className="w-9 h-9 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-              <Shield size={14} className="text-red-400" />
-            </div>
-            <motion.button
-              onClick={signOut}
-              className="flex items-center gap-2 text-white/30 hover:text-white text-xs font-bold uppercase tracking-wider transition-colors"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <LogOut size={13} /> Sign Out
-            </motion.button>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 py-10">
+    <DashboardLayout
+      loading={loading}
+      title={<><ShieldAlert size={12} className="text-red-400" /> Admin Control Center</>}
+      titleAccent="white"
+      userName={profile?.full_name?.split(" ")[0] ?? "Admin"}
+      roleName="Admin Access"
+      userEmail={profile?.email ?? ""}
+      icon={Shield}
+      iconAccent="#ef4444"
+      onSignOut={signOut}
+    >
         <div className="flex items-center gap-3 mb-6">
           <Users size={20} className="text-white/40" />
           <h2 className="text-white font-black text-xl uppercase tracking-wider" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
@@ -255,22 +241,33 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
                     </td>
                     <td className="p-4 text-right">
                       {updatingId === u.id ? (
-                        <div className="inline-flex items-center gap-2 text-white/50 text-xs py-1.5 px-3">
+                        <div className="flex items-center justify-end gap-2 text-white/50 text-xs py-1.5 px-3">
                           <RefreshCw size={12} className="animate-spin" /> Updating...
                         </div>
                       ) : (
-                        <select
-                          value={u.role}
-                          onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
-                          className="bg-black/50 border border-white/10 text-white text-xs px-3 py-1.5 outline-none focus:border-white/40 rounded transition-colors"
-                          style={{ fontFamily: "'Inter', sans-serif" }}
-                          disabled={u.id === profile?.id} // Prevent admin from demoting themselves by accident
-                        >
-                          <option value="client">Client</option>
-                          <option value="developer">Developer</option>
-                          <option value="sales">Sales</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                        <div className="flex items-center justify-end gap-2">
+                          <select
+                            value={u.role}
+                            onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
+                            className="bg-black/50 border border-white/10 text-white text-xs px-3 py-1.5 outline-none focus:border-white/40 rounded transition-colors"
+                            style={{ fontFamily: "'Inter', sans-serif" }}
+                            disabled={u.id === profile?.id} // Prevent admin from demoting themselves by accident
+                          >
+                            <option value="client">Client</option>
+                            <option value="developer">Developer</option>
+                            <option value="sales">Sales</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                          {u.id !== profile?.id && (
+                            <button
+                              onClick={() => handleRemoveUser(u.id)}
+                              className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                              title="Remove Member"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -567,7 +564,7 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
                       <td className="p-4">
                         <div className="flex items-center gap-1 mb-1">
                           <span className="text-white/90 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>⭐ {l.rating || "-"}</span>
-                          <span className="text-white/40 text-xs ml-1" style={{ fontFamily: "'Inter', sans-serif" }}>({l.reviews || "0"})</span>
+                          <span className="text-white/40 text-xs ml-1" style={{ fontFamily: "'Inter', sans-serif" }}>({String(l.reviews || "0").replace(/\D/g, '')})</span>
                         </div>
                         {l.google_link && (
                           <a href={l.google_link} target="_blank" rel="noreferrer" className="text-[#60c8ff] text-[10px] hover:underline" style={{ fontFamily: "'Inter', sans-serif" }}>Google Maps</a>
@@ -625,7 +622,6 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
           </>
         )}
 
-      </div>
-    </div>
+    </DashboardLayout>
   );
 }

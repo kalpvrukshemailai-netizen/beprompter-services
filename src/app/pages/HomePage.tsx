@@ -1,75 +1,28 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView, AnimatePresence, useScroll, useTransform } from "motion/react";
-import { ArrowRight, ArrowUpRight, Bot, Mic, Zap, Settings2, MessageSquare, Database, Cpu, Plug, Monitor, Smartphone, Shield, TrendingUp, Users, Lock, type LucideIcon } from "lucide-react";
-
+import { ArrowRight, ArrowUpRight, MessageCircle, Settings, Users, Globe, Database, Smartphone, Zap, CheckCircle } from "lucide-react";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=1600&h=900&fit=crop&auto=format&q=90";
-
-// Square crops for planet spheres
-const MARS_IMG    = "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=900&h=900&fit=crop&auto=format&q=90";
-const SATURN_IMG  = "https://images.unsplash.com/photo-1614314107768-6018061b5b72?w=900&h=900&fit=crop&auto=format&q=90";
-const JUPITER_IMG = "https://images.unsplash.com/photo-1614313913007-2b4ae8ce32d6?w=900&h=900&fit=crop&auto=format&q=90";
 const NEBULA_IMG  = "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=900&h=900&fit=crop&auto=format&q=90";
+const MARS_IMG    = "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=900&h=900&fit=crop&auto=format&q=90";
+const JUPITER_IMG = "https://images.unsplash.com/photo-1614313913007-2b4ae8ce32d6?w=900&h=900&fit=crop&auto=format&q=90";
 
 const SERVICES_CYCLE = [
-  "AI CHATBOTS",
-  "AI VOICE AGENTS",
-  "WORKFLOW AUTOMATION",
-  "PROCESS AUTOMATION",
+  "PROPERTY LEAD GENERATION",
   "WHATSAPP AUTOMATION",
-  "CRM AUTOMATION",
-  "CUSTOM AI AGENTS",
-  "AI TOOL INTEGRATION",
-  "CUSTOM SOFTWARE",
-  "WEB APPLICATIONS",
-  "MOBILE APPLICATIONS",
+  "AI SALES AGENTS",
+  "PROPERTY WEBSITES",
+  "WORKFLOW AUTOMATION",
 ];
 
-const SERVICES_GRID: { icon: LucideIcon; title: string; desc: string }[] = [
-  { icon: Bot,          title: "AI Chatbots",           desc: "Intelligent chatbots trained on your data, running 24/7 to handle support and sales." },
-  { icon: Mic,          title: "AI Voice Agents",        desc: "Conversational voice AI for inbound calls, bookings, and customer queries." },
-  { icon: Zap,          title: "Workflow Automation",    desc: "End-to-end automation of repetitive tasks across your tools and systems." },
-  { icon: Settings2,    title: "Process Automation",     desc: "Digitise and automate business processes to cut costs and remove manual errors." },
-  { icon: MessageSquare,title: "WhatsApp Automation",    desc: "Automated WhatsApp flows for orders, support, reminders, and lead capture." },
-  { icon: Database,     title: "CRM Automation",         desc: "Smart CRM pipelines with AI lead scoring, follow-ups, and deal tracking." },
-  { icon: Cpu,          title: "Custom AI Agents",       desc: "Purpose-built AI agents that reason, plan, and execute multi-step workflows." },
-  { icon: Plug,         title: "AI Tool Integration",    desc: "Connect OpenAI, Claude, Gemini, and n8n into your existing infrastructure." },
-  { icon: Monitor,      title: "Custom Software",        desc: "Bespoke web and internal tools engineered for your specific operations." },
-  { icon: Smartphone,   title: "Mobile Applications",   desc: "Cross-platform iOS and Android apps built with AI features built in." },
+const CAPABILITIES = [
+  { icon: MessageCircle, title: "WhatsApp Workflows", desc: "Automate responses and capture lead data instantly on WhatsApp." },
+  { icon: Database,      title: "CRM Integration",    desc: "Connect your leads seamlessly to your sales CRM." },
+  { icon: Users,         title: "Lead Qualification", desc: "AI-driven questions to identify budget, location, and intent." },
+  { icon: Globe,         title: "Property Funnels",   desc: "High-converting landing pages tailored for property sales." },
+  { icon: Zap,           title: "Workflow Automation",desc: "Eliminate manual data entry and connect your entire tech stack." },
+  { icon: Settings,      title: "Custom APIs",        desc: "Bespoke integrations connecting legacy systems with modern tools." },
 ];
-
-const WHY_US = [
-  { icon: Cpu,      title: "AI-First Company",           desc: "We lead with AI — every engagement starts with automation and intelligence, not design templates." },
-  { icon: TrendingUp,title: "Business-Focused Solutions", desc: "We measure success in business outcomes: time saved, costs reduced, revenue generated." },
-  { icon: Settings2, title: "Custom-Built Systems",       desc: "No off-the-shelf tools. Every system is engineered from the ground up for your workflow." },
-  { icon: Lock,      title: "Enterprise-Grade Security",  desc: "SOC 2 aligned practices, data encryption, and secure API handling on every project." },
-  { icon: Users,     title: "Dedicated Support",          desc: "A dedicated technical team assigned to your account from kickoff through post-launch." },
-  { icon: Shield,    title: "Scalable Architecture",      desc: "Systems designed to scale from hundreds to millions of interactions without rebuilding." },
-];
-
-const TECHNOLOGIES = [
-  { name: "OpenAI",          cat: "AI" },
-  { name: "Anthropic Claude", cat: "AI" },
-  { name: "Google Gemini",   cat: "AI" },
-  { name: "n8n",             cat: "Automation" },
-  { name: "Supabase",        cat: "Database" },
-  { name: "Firebase",        cat: "Database" },
-  { name: "Node.js",         cat: "Backend" },
-  { name: "React",           cat: "Frontend" },
-  { name: "Next.js",         cat: "Frontend" },
-  { name: "Python",          cat: "Backend" },
-  { name: "Docker",          cat: "Infra" },
-  { name: "Cloudflare",      cat: "Infra" },
-  { name: "WhatsApp API",    cat: "Messaging" },
-  { name: "Vector Databases",cat: "AI" },
-];
-
-/* Scales rgba opacity by a factor */
-function scaleGlowAlpha(rgba: string, factor: number): string {
-  const m = rgba.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
-  if (!m) return rgba;
-  return `rgba(${m[1]},${m[2]},${m[3]},${Math.min(parseFloat(m[4]) * factor, 1).toFixed(2)})`;
-}
 
 function useIsMobile() {
   const [mobile, setMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
@@ -79,6 +32,12 @@ function useIsMobile() {
     return () => window.removeEventListener("resize", fn);
   }, []);
   return mobile;
+}
+
+function scaleGlowAlpha(rgba: string, factor: number): string {
+  const m = rgba.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+  if (!m) return rgba;
+  return `rgba(${m[1]},${m[2]},${m[3]},${Math.min(parseFloat(m[4]) * factor, 1).toFixed(2)})`;
 }
 
 function WarpDivider() {
@@ -224,11 +183,10 @@ export function HomePage({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [serviceIdx, setServiceIdx] = useState(0);
 
   const heroRef = useRef<HTMLElement>(null);
-  const servicesRef = useRef<HTMLElement>(null);
-  const workRef = useRef<HTMLElement>(null);
+  const systemRef = useRef<HTMLElement>(null);
   const processRef = useRef<HTMLElement>(null);
+  const capabilitiesRef = useRef<HTMLElement>(null);
   const ctaRef = useRef<HTMLElement>(null);
-  const whyRef = useRef<HTMLElement>(null);
 
   const { scrollYProgress: heroScroll } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroY = useTransform(heroScroll, [0, 1], ["0%", "30%"]);
@@ -276,7 +234,7 @@ export function HomePage({ onNavigate }: { onNavigate: (p: string) => void }) {
                 filter: "brightness(2.5) contrast(1.2)",
                 fontFamily: "'Barlow Condensed', sans-serif",
                 fontWeight: 900,
-                fontSize: "clamp(4.5rem, 13vw, 11rem)",
+                fontSize: "clamp(3.5rem, 11vw, 9rem)",
                 backgroundImage: `url('${HERO_IMG}')`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
@@ -285,17 +243,17 @@ export function HomePage({ onNavigate }: { onNavigate: (p: string) => void }) {
                 backgroundClip: "text",
               }}
             >
-              <SplitText text="AI AGENTS" delay={0.1} stagger={0.04} />
+              <SplitText text="AI SYSTEMS FOR" delay={0.1} stagger={0.04} />
               <br />
-              <SplitText text="& AUTOMATION" delay={0.35} stagger={0.03} />
+              <SplitText text="REAL ESTATE." delay={0.35} stagger={0.03} />
             </h1>
           </div>
 
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.9 }}>
-              <p className="text-white/40 text-sm mb-1 tracking-widest uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>BePrompter Technology</p>
-              <p className="text-white/70 text-base max-w-md leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
-                We design and build AI agents, workflow automation, and custom software that reduce manual work, improve customer experience, and help businesses scale.
+              <p className="text-white/40 text-sm mb-1 tracking-widest uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Capture more property enquiries. Respond faster. Qualify automatically. Book more site visits.</p>
+              <p className="text-white/70 text-base max-w-md leading-relaxed mt-2" style={{ fontFamily: "'Inter', sans-serif" }}>
+                BePrompter builds AI-powered lead generation, WhatsApp automation, CRM workflows, sales agents and property websites for real-estate businesses.
               </p>
             </motion.div>
             <motion.div className="flex flex-wrap gap-4" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 1.0 }}>
@@ -305,15 +263,15 @@ export function HomePage({ onNavigate }: { onNavigate: (p: string) => void }) {
                 style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
                 whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               >
-                BOOK FREE AI STRATEGY CALL <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                GET A FREE AI WORKFLOW AUDIT <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </motion.button>
               <motion.button
-                onClick={() => onNavigate("casestudies")}
+                onClick={() => onNavigate("services")}
                 className="flex items-center gap-3 border border-white/30 text-white text-xs font-black tracking-widest uppercase px-8 py-4 hover:border-white hover:bg-white/5 transition-colors"
                 style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
                 whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               >
-                VIEW OUR WORK
+                VIEW OUR SERVICES
               </motion.button>
             </motion.div>
           </div>
@@ -330,7 +288,7 @@ export function HomePage({ onNavigate }: { onNavigate: (p: string) => void }) {
       <style>{`@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}`}</style>
       <div className="bg-white overflow-hidden py-3 border-y border-white/10">
         <div className="flex gap-10 whitespace-nowrap" style={{ animation: "marquee 28s linear infinite", willChange: "transform" }}>
-          {[...SERVICES_CYCLE, ...SERVICES_CYCLE].map((s, i) => (
+          {[...SERVICES_CYCLE, ...SERVICES_CYCLE, ...SERVICES_CYCLE].map((s, i) => (
             <span key={i} className="text-black text-xs font-black tracking-[0.25em] uppercase shrink-0 flex items-center gap-10" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
               {s} <span className="w-1.5 h-1.5 rounded-full bg-black inline-block" />
             </span>
@@ -338,127 +296,58 @@ export function HomePage({ onNavigate }: { onNavigate: (p: string) => void }) {
         </div>
       </div>
 
-      {/* ── POSITIONING STRIP ── */}
-      <section style={{ backgroundColor: "#0a0a0a" }} className="border-b border-white/8">
-        <div className="max-w-7xl mx-auto px-6 py-10">
-          <p className="text-white/40 text-xs tracking-[0.25em] uppercase mb-6" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-            An AI Engineering Partner that builds
-          </p>
-          <div className="flex flex-wrap gap-3">
-            {["AI Agents", "Workflow Automation", "Custom AI Systems", "Business Software", "WhatsApp Bots", "Voice AI"].map((tag) => (
-              <span key={tag} className="border border-white/15 text-white/60 text-xs px-4 py-2 font-semibold tracking-wider uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <WarpDivider />
 
-      {/* ── SERVICES — Mars ── */}
-      <section ref={servicesRef} className="relative overflow-hidden py-28 lg:py-40 min-h-[80vh] flex items-center">
-        <PlanetBg src={MARS_IMG} overlay="rgba(0,0,0,0.28)" sectionRef={servicesRef} side="right" glow="rgba(210,80,30,0.55)" />
-        <PlanetLabel name="Mars" />
+      {/* ── REAL ESTATE AI SYSTEM — Mars ── */}
+      <section id="real-estate-ai-system" ref={systemRef} className="relative overflow-hidden py-28 lg:py-40 min-h-[80vh] flex items-center">
+        <PlanetBg src={MARS_IMG} overlay="rgba(0,0,0,0.28)" sectionRef={systemRef} side="right" glow="rgba(210,80,30,0.55)" />
+        <PlanetLabel name="System Architecture" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
           <AnimReveal className="mb-16">
-            <p className="text-white/30 text-xs tracking-[0.3em] uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>What We Build</p>
-            <h2 className="text-white leading-[0.92]" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(2.5rem, 5vw, 4.5rem)", fontWeight: 900 }}>
-              AI SYSTEMS THAT<br />WORK WHILE YOU SLEEP
-            </h2>
-          </AnimReveal>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-px" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-            {SERVICES_GRID.map((s, i) => {
-              const Icon = s.icon;
-              return (
-                <motion.div
-                  key={s.title}
-                  className="relative overflow-hidden p-6 group cursor-pointer"
-                  style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-40px" }}
-                  transition={{ duration: 0.5, delay: i * 0.06 }}
-                  whileHover={{ backgroundColor: "rgba(255,255,255,0.95)" }}
-                  onClick={() => onNavigate("services")}
-                >
-                  <motion.div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ArrowUpRight size={14} className="text-black" />
-                  </motion.div>
-                  <Icon size={16} className="text-white/30 group-hover:text-black mb-3 transition-colors" />
-                  <h3 className="text-white group-hover:text-black font-black mb-2 leading-tight transition-colors" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "0.95rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-                    {s.title}
-                  </h3>
-                  <p className="text-white/40 group-hover:text-black/60 text-xs leading-relaxed transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>
-                    {s.desc}
-                  </p>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          <AnimReveal className="mt-10" delay={0.2}>
-            <button
-              onClick={() => onNavigate("services")}
-              className="group flex items-center gap-3 border border-white/20 hover:border-white text-white text-xs font-black tracking-widest uppercase px-8 py-4 transition-colors hover:bg-white hover:text-black"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-            >
-              VIEW ALL SERVICES <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
-            </button>
-          </AnimReveal>
-        </div>
-      </section>
-
-      <WarpDivider />
-
-      {/* ── CASE STUDIES PLACEHOLDER — Saturn ── */}
-      <section ref={workRef} className="relative overflow-hidden py-28 lg:py-40 min-h-[80vh] flex items-center">
-        <PlanetBg src={SATURN_IMG} overlay="rgba(0,0,0,0.26)" sectionRef={workRef} side="left" glow="rgba(200,165,70,0.55)" />
-        <PlanetLabel name="Saturn" />
-
-        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
-          <AnimReveal className="mb-14">
-            <p className="text-white/30 text-xs tracking-[0.3em] uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Case Studies</p>
+            <p className="text-white/30 text-xs tracking-[0.3em] uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>The Real Estate AI Lead System</p>
             <h2 className="text-white leading-[0.92] mb-6" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(2.5rem, 5vw, 4.5rem)", fontWeight: 900 }}>
-              REAL RESULTS.<br />COMING SOON.
+              FROM FIRST ENQUIRY TO<br />BOOKED SITE VISIT.
             </h2>
-            <p className="text-white/40 text-base leading-relaxed max-w-xl" style={{ fontFamily: "'Inter', sans-serif" }}>
-              We are actively deploying AI systems for our early clients. Case studies will be published once results are verified and clients have approved disclosure.
-            </p>
-            <p className="text-white/25 text-sm mt-3" style={{ fontFamily: "'Inter', sans-serif" }}>
-              We believe in publishing only genuine, verified results — no inflated numbers.
+            <p className="text-white/50 text-base max-w-2xl leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
+              Bring your lead generation, WhatsApp, CRM, AI qualification and sales workflow together into one connected system. We build the architecture so your team can focus on closing deals.
             </p>
           </AnimReveal>
 
-          <AnimReveal delay={0.15}>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-px" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
-              {["Healthcare", "Real Estate", "E-Commerce"].map((ind, i) => (
-                <div key={ind} className="p-8" style={{ backgroundColor: "rgba(0,0,0,0.55)" }}>
-                  <div className="w-full h-28 rounded border border-white/8 mb-5 flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.03)" }}>
-                    <span className="text-white/15 text-xs font-bold tracking-widest uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Project Image</span>
-                  </div>
-                  <span className="text-white/25 text-xs font-bold tracking-widest uppercase block mb-2" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{ind}</span>
-                  <div className="h-px w-full mb-3" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
-                  <div className="flex gap-3">
-                    {["Time saved", "Cost reduced", "ROI"].map((l) => (
-                      <div key={l} className="flex-1 text-center">
-                        <p className="text-white/10 font-black" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>—</p>
-                        <p className="text-white/15 text-[10px] mt-0.5" style={{ fontFamily: "'Inter', sans-serif" }}>{l}</p>
+          <AnimReveal delay={0.2}>
+            {/* Visual Workflow Diagram */}
+            <div className="relative p-8 md:p-12 border border-white/10 overflow-hidden" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+              <div className="absolute inset-0 z-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at center, rgba(255,255,255,0.2) 1px, transparent 1px)", backgroundSize: "20px 20px" }}></div>
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0">
+                {[
+                  { label: "AD / WEBSITE", sub: "New Enquiry" },
+                  { label: "AI RESPONSE", sub: "Instant Reply" },
+                  { label: "QUALIFICATION", sub: "Budget & Location" },
+                  { label: "CRM", sub: "Sync Details" },
+                  { label: "SALES TEAM", sub: "Site Visit" },
+                ].map((step, idx, arr) => (
+                  <div key={idx} className="flex flex-col md:flex-row items-center w-full md:w-auto">
+                    <div className="text-center p-4 border border-white/20 bg-black w-48 md:w-auto flex-shrink-0">
+                      <p className="text-white font-black uppercase text-sm mb-1 tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{step.label}</p>
+                      <p className="text-white/50 text-[10px] tracking-wider uppercase" style={{ fontFamily: "'Inter', sans-serif" }}>{step.sub}</p>
+                    </div>
+                    {idx < arr.length - 1 && (
+                      <div className="flex items-center justify-center py-4 md:py-0 md:px-6">
+                        <ArrowRight className="hidden md:block text-white/30" />
+                        <div className="md:hidden w-px h-6 bg-white/30" />
                       </div>
-                    ))}
+                    )}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             <button
-              onClick={() => onNavigate("casestudies")}
-              className="group mt-8 flex items-center gap-3 border border-white/20 hover:border-white text-white text-xs font-black tracking-widest uppercase px-8 py-4 transition-colors hover:bg-white hover:text-black"
+              onClick={() => onNavigate("contact")}
+              className="group mt-12 flex items-center gap-3 border border-white/20 hover:border-white text-white text-xs font-black tracking-widest uppercase px-8 py-4 transition-colors hover:bg-white hover:text-black"
               style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
             >
-              VIEW CASE STUDIES <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+              BUILD MY LEAD SYSTEM <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </AnimReveal>
         </div>
@@ -467,30 +356,28 @@ export function HomePage({ onNavigate }: { onNavigate: (p: string) => void }) {
       <WarpDivider />
 
       {/* ── PROCESS — Jupiter ── */}
-      <section ref={processRef} className="relative overflow-hidden py-28 lg:py-40 min-h-[80vh] flex items-center border-t border-white/8">
-        <PlanetBg src={JUPITER_IMG} overlay="rgba(0,0,0,0.28)" sectionRef={processRef} side="right" glow="rgba(180,110,45,0.55)" />
-        <PlanetLabel name="Jupiter" />
+      <section id="how-it-works" ref={processRef} className="relative overflow-hidden py-28 lg:py-40 min-h-[80vh] flex items-center border-t border-white/8">
+        <PlanetBg src={JUPITER_IMG} overlay="rgba(0,0,0,0.28)" sectionRef={processRef} side="left" glow="rgba(180,110,45,0.55)" />
+        <PlanetLabel name="Implementation" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
           <AnimReveal className="mb-16">
             <p className="text-white/30 text-xs tracking-[0.3em] uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>How We Work</p>
             <h2 className="text-white leading-[0.92]" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(2.5rem, 5vw, 4.5rem)", fontWeight: 900 }}>
-              OUR PROVEN<br />PROCESS
+              DEPLOYED IN<br />FOUR STEPS.
             </h2>
           </AnimReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-0 border-t border-white/10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 border-t border-white/10" style={{ backgroundColor: "rgba(0,0,0,0.4)" }}>
             {[
-              { n: "01", title: "Discover",    desc: "Deep-dive into your business, workflows, and goals to identify the highest-value automation opportunities." },
-              { n: "02", title: "Strategy",    desc: "We map out the AI architecture, tools, and integrations before writing a single line of code." },
-              { n: "03", title: "Design",      desc: "User flows, interface designs, and system diagrams reviewed and approved before build begins." },
-              { n: "04", title: "Development", desc: "Engineering the AI agents, automations, and software with precision and full test coverage." },
-              { n: "05", title: "Deployment",  desc: "Staged rollout with performance monitoring, load testing, and client sign-off at every step." },
-              { n: "06", title: "Support",     desc: "Ongoing monitoring, updates, and dedicated support to keep your systems running at full capacity." },
+              { n: "01", title: "Discover", desc: "We understand your current lead and sales workflow, identifying bottlenecks." },
+              { n: "02", title: "Design",   desc: "We identify exactly where automation and AI can remove repetitive work and speed up response times." },
+              { n: "03", title: "Build",    desc: "We build and integrate the system around your existing tools (CRM, WhatsApp, Website)." },
+              { n: "04", title: "Optimize", desc: "We monitor, improve and refine the workflow after deployment to maximize conversions." },
             ].map((p, i) => (
               <motion.div
                 key={p.n}
-                className="p-6 border-b md:border-b-0 border-r border-white/10 last:border-r-0 group"
+                className="p-8 border-b md:border-b-0 border-r border-white/10 last:border-r-0 group"
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -498,8 +385,8 @@ export function HomePage({ onNavigate }: { onNavigate: (p: string) => void }) {
                 whileHover={{ backgroundColor: "rgba(255,255,255,0.04)" }}
               >
                 <p className="text-white/10 font-black leading-none mb-4 group-hover:text-white/20 transition-colors" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "3.5rem" }}>{p.n}</p>
-                <h3 className="text-white font-black mb-2 text-base" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.06em" }}>{p.title}</h3>
-                <p className="text-white/40 text-xs leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>{p.desc}</p>
+                <h3 className="text-white font-black mb-2 text-xl" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" }}>{p.title}</h3>
+                <p className="text-white/40 text-sm leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>{p.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -508,96 +395,91 @@ export function HomePage({ onNavigate }: { onNavigate: (p: string) => void }) {
 
       <WarpDivider />
 
-      {/* ── CTA BREAK ── */}
-      <section ref={ctaRef} className="relative overflow-hidden py-40 lg:py-56 min-h-[70vh] flex items-center">
-        <PlanetBg src={NEBULA_IMG} overlay="rgba(0,0,0,0.30)" sectionRef={ctaRef} side="left" glow="rgba(35,100,220,0.55)" />
-
-        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full text-center">
-          <AnimReveal>
-            <p className="text-white/30 text-xs tracking-[0.3em] uppercase mb-6" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Ready?</p>
-            <h2
-              className="text-white leading-[0.88] mb-10"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(3.5rem, 9vw, 9rem)", fontWeight: 900 }}
-            >
-              LET'S BUILD<br />
-              <span style={{
-                backgroundImage: `url('${HERO_IMG}')`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-                filter: "brightness(3)",
-              }}>YOUR AI SYSTEM</span>
-            </h2>
-            <motion.button
-              onClick={() => onNavigate("contact")}
-              className="group inline-flex items-center gap-4 bg-white text-black text-sm font-black tracking-widest uppercase px-12 py-5 hover:bg-white/90 transition-colors"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-              whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-            >
-              BOOK FREE AI STRATEGY CALL <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-            </motion.button>
-          </AnimReveal>
-        </div>
-      </section>
-
-      <WarpDivider />
-
-      {/* ── WHY US — Nebula ── */}
-      <section ref={whyRef} className="relative overflow-hidden py-28 lg:py-40 min-h-[80vh] flex items-center border-t border-white/8">
+      {/* ── CAPABILITIES — Stars Bg ── */}
+      <section ref={capabilitiesRef} className="relative overflow-hidden py-28 lg:py-40 min-h-[80vh] flex items-center border-t border-white/8">
         <div className="absolute inset-0 z-0" style={{ background: "#000" }} />
         <div style={{ position: "absolute", inset: 0, backgroundImage: STARS_BG }} />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
           <AnimReveal className="mb-14">
-            <p className="text-white/30 text-xs tracking-[0.3em] uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Why Choose Us</p>
+            <p className="text-white/30 text-xs tracking-[0.3em] uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Technical Foundations</p>
             <h2 className="text-white leading-[0.92]" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(2.5rem, 5vw, 4rem)", fontWeight: 900 }}>
-              WHY BUSINESSES<br />CHOOSE BEPROMPTER
+              BUILT FOR REAL-WORLD<br />SALES WORKFLOWS
             </h2>
           </AnimReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-20">
-            {WHY_US.map((w, i) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {CAPABILITIES.map((w, i) => {
               const Icon = w.icon;
               return (
                 <AnimReveal key={w.title} delay={i * 0.08}>
-                  <div className="border border-white/8 p-7 hover:border-white/20 transition-colors" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
-                    <Icon size={20} className="text-white/30 mb-5" />
-                    <h3 className="text-white font-black mb-2" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.15rem" }}>{w.title}</h3>
+                  <div className="border border-white/8 p-8 hover:border-white/20 transition-colors h-full flex flex-col" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
+                    <Icon size={24} className="text-white/30 mb-6" />
+                    <h3 className="text-white font-black mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.25rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>{w.title}</h3>
                     <p className="text-white/45 text-sm leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>{w.desc}</p>
                   </div>
                 </AnimReveal>
               );
             })}
           </div>
-
-          {/* Technologies */}
-          <AnimReveal>
-            <p className="text-white/30 text-xs tracking-[0.3em] uppercase mb-6" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Technologies We Use</p>
-            <div className="flex flex-wrap gap-2">
-              {TECHNOLOGIES.map((t) => (
-                <span key={t.name} className="border border-white/10 px-3 py-2 text-xs font-semibold tracking-wider" style={{ fontFamily: "'Inter', sans-serif", color: "rgba(255,255,255,0.45)" }}>
-                  {t.name}
-                </span>
-              ))}
-            </div>
-          </AnimReveal>
-
-          {/* Testimonials placeholder */}
-          <AnimReveal className="mt-20" delay={0.1}>
-            <div className="border border-white/8 p-10 text-center" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
-              <p className="text-white/30 text-xs tracking-[0.3em] uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Client Testimonials</p>
-              <p className="text-white/50 text-xl mb-2" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 300 }}>
-                "Client testimonials coming soon."
-              </p>
-              <p className="text-white/25 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
-                We believe in publishing only genuine customer feedback. Our first verified testimonials will appear here.
-              </p>
-            </div>
-          </AnimReveal>
         </div>
       </section>
+
+      <WarpDivider />
+
+      {/* ── CTA / CUSTOM PRICING ── */}
+      <section ref={ctaRef} className="relative overflow-hidden py-40 lg:py-56 min-h-[70vh] flex items-center">
+        <PlanetBg src={NEBULA_IMG} overlay="rgba(0,0,0,0.30)" sectionRef={ctaRef} side="right" glow="rgba(35,100,220,0.55)" />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full flex flex-col lg:flex-row items-center justify-between gap-16">
+          <div className="lg:w-1/2">
+            <AnimReveal>
+              <p className="text-white/30 text-xs tracking-[0.3em] uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Pricing</p>
+              <h2
+                className="text-white leading-[0.92] mb-6"
+                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(3rem, 6vw, 5.5rem)", fontWeight: 900 }}
+              >
+                CUSTOM BUILT FOR YOUR BUSINESS
+              </h2>
+              <p className="text-white/60 text-lg max-w-md leading-relaxed mb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+                Every real-estate sales workflow is different. We scope the system around your lead volume, tools, sales process and goals.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <motion.button
+                  onClick={() => onNavigate("contact")}
+                  className="group inline-flex items-center justify-center gap-4 bg-white text-black text-sm font-black tracking-widest uppercase px-10 py-5 hover:bg-white/90 transition-colors"
+                  style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+                >
+                  GET A CUSTOM QUOTE <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </motion.button>
+              </div>
+            </AnimReveal>
+          </div>
+          
+          <div className="lg:w-1/2 w-full">
+             <AnimReveal delay={0.2}>
+               <div className="border border-white/20 p-10 lg:p-14 text-center backdrop-blur-sm" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+                 <p className="text-white/40 text-xs tracking-[0.3em] uppercase mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Not sure where to start?</p>
+                 <h3 className="text-white font-black mb-6" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "2rem", textTransform: "uppercase" }}>Free 15-Minute AI Workflow Audit</h3>
+                 <p className="text-white/60 text-sm leading-relaxed mb-8 mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
+                   Show us how you currently handle property enquiries. We'll identify where AI and automation can improve the workflow and increase conversions.
+                 </p>
+                 <motion.button
+                  onClick={() => onNavigate("contact")}
+                  className="border border-white/40 hover:border-white text-white text-xs font-black tracking-widest uppercase px-8 py-4 transition-colors w-full"
+                  style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                 >
+                   CLAIM FREE AUDIT
+                 </motion.button>
+               </div>
+             </AnimReveal>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }

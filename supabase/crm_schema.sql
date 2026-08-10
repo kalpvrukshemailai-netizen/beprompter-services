@@ -17,7 +17,11 @@ CREATE TABLE public.crm_leads (
   status TEXT DEFAULT 'New', -- New, Contacted, In Progress, Closed
   assigned_to UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   developer_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  notes TEXT
+  notes TEXT,
+  services_wanted TEXT,
+  budget_constraints TEXT,
+  objections TEXT,
+  project_status TEXT DEFAULT 'Planning'
 );
 
 -- Enable RLS
@@ -47,4 +51,12 @@ ON public.crm_leads
 FOR UPDATE 
 USING (
   assigned_to = auth.uid()
+);
+
+-- Developers can only view leads assigned to them
+CREATE POLICY "Developers can view assigned leads" 
+ON public.crm_leads 
+FOR SELECT 
+USING (
+  developer_id = auth.uid()
 );

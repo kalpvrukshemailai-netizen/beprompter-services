@@ -5,12 +5,7 @@ import { Footer } from "@/app/components/Footer";
 import { HomePage } from "@/app/pages/HomePage";
 import { AboutPage } from "@/app/pages/AboutPage";
 import { ServicesPage } from "@/app/pages/ServicesPage";
-import { ClientsPage } from "@/app/pages/ClientsPage";
-import { IndustriesPage } from "@/app/pages/IndustriesPage";
-import { CaseStudiesPage } from "@/app/pages/CaseStudiesPage";
-import { InsightsPage } from "@/app/pages/InsightsPage";
 import { ContactPage } from "@/app/pages/ContactPage";
-import { AgencyPartnersPage } from "@/app/pages/AgencyPartnersPage";
 import { AuthPage } from "@/app/pages/AuthPage";
 import { ClientDashboard } from "@/app/pages/ClientDashboard";
 import { DeveloperDashboard } from "@/app/pages/DeveloperDashboard";
@@ -20,8 +15,8 @@ import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
 type Page =
-  | "home" | "about" | "services" | "clients" | "industries"
-  | "casestudies" | "partner" | "insights" | "contact"
+  | "home" | "about" | "services"
+  | "contact"
   | "auth" | "client-dashboard" | "developer-dashboard" | "sales-dashboard" | "admin-dashboard";
 
 const pageVariants = {
@@ -82,6 +77,14 @@ export default function App() {
       setServiceIndex(isNaN(idx) ? 0 : idx);
       setScrollToDetail(true);
       setPage("services");
+    } else if (p.startsWith("home:")) {
+      setPage("home");
+      setTimeout(() => {
+        const element = document.getElementById(p.split(":")[1]);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
     } else {
       if (p === "services") setScrollToDetail(false);
       setPage(p as Page);
@@ -112,11 +115,6 @@ export default function App() {
       case "home":             return <HomePage onNavigate={navigate} />;
       case "about":            return <AboutPage onNavigate={navigate} />;
       case "services":         return <ServicesPage onNavigate={navigate} initialServiceIndex={serviceIndex} scrollToDetail={scrollToDetail} />;
-      case "clients":          return <ClientsPage onNavigate={navigate} />;
-      case "industries":       return <IndustriesPage onNavigate={navigate} />;
-      case "casestudies":      return <CaseStudiesPage onNavigate={navigate} />;
-      case "partner":          return <AgencyPartnersPage onNavigate={navigate} />;
-      case "insights":         return <InsightsPage onNavigate={navigate} />;
       case "contact":          return <ContactPage />;
       case "auth":             return <AuthPage onNavigate={navigate} />;
       case "client-dashboard": return <ClientDashboard onNavigate={navigate} />;

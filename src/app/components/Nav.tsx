@@ -6,17 +6,11 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import beLogo from "@/imports/BE-logo.jpeg";
 
 const SERVICE_SUB = [
-  { label: "AI Agents",         idx: 0 },
-  { label: "AI Voice Agents",   idx: 1 },
-  { label: "Workflow Auto",     idx: 2 },
-  { label: "AI Integration",    idx: 3 },
-  { label: "WhatsApp & CRM",    idx: 4 },
-  { label: "Website Dev",       idx: 5 },
-  { label: "Mobile Apps",       idx: 6 },
-  { label: "Business Software", idx: 7 },
-  { label: "E-Commerce",        idx: 8 },
-  { label: "Digital Marketing", idx: 9 },
-  { label: "AI Video & UGC",    idx: 10 },
+  { label: "Lead Generation",   idx: 0 },
+  { label: "WhatsApp & CRM",    idx: 1 },
+  { label: "AI Sales Agents",   idx: 2 },
+  { label: "Websites & Funnels",idx: 3 },
+  { label: "Workflow Auto",     idx: 4 },
 ];
 
 const NAV_ITEMS = [
@@ -24,15 +18,9 @@ const NAV_ITEMS = [
     label: "Services", page: "services",
     sub: SERVICE_SUB.map((s) => `${s.label}|services:${s.idx}`),
   },
-  {
-    label: "Work", page: "casestudies",
-    sub: ["Case Studies|casestudies", "Industries|industries"],
-  },
-  { label: "Agency Partners", page: "partner" },
-  {
-    label: "Company", page: "about",
-    sub: ["About|about", "Insights|insights"],
-  },
+  { label: "How It Works", page: "home:how-it-works" },
+  { label: "AI System", page: "home:real-estate-ai-system" },
+  { label: "About", page: "about" },
 ];
 
 const VISIBLE = 7;

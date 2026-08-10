@@ -3,20 +3,9 @@ import { motion } from "motion/react";
 import { LogOut, User, MessageSquare, FileText, Clock, ArrowRight, Bot, Zap, Mic, X } from "lucide-react";
 import { supabase, Profile } from "@/lib/supabase";
 import { ProjectChat } from "@/app/components/ProjectChat";
+import { StatCard } from "@/app/components/ui/StatCard";
+import { DashboardLayout } from "@/app/components/DashboardLayout";
 
-function StatCard({ icon: Icon, label, value, accent = "#60c8ff" }: { icon: React.ElementType; label: string; value: string; accent?: string }) {
-  return (
-    <div className="border border-white/8 p-6 flex items-start gap-4" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
-      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${accent}18` }}>
-        <Icon size={16} style={{ color: accent }} />
-      </div>
-      <div>
-        <p className="text-white font-black text-2xl leading-none mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{value}</p>
-        <p className="text-white/40 text-xs uppercase tracking-wider" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{label}</p>
-      </div>
-    </div>
-  );
-}
 
 export function ClientDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -48,46 +37,16 @@ export function ClientDashboard({ onNavigate }: { onNavigate: (p: string) => voi
     onNavigate("home");
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#0a0a0a" }}>
-        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen pt-16" style={{ backgroundColor: "#0a0a0a" }}>
-      {/* Top bar */}
-      <div className="border-b border-white/8 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <p className="text-white/30 text-xs tracking-[0.25em] uppercase mb-0.5" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Client Portal</p>
-            <p className="text-white font-black text-lg" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-              Welcome back, {profile?.full_name?.split(" ")[0] ?? "there"}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-white/60 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>{profile?.company_name}</p>
-              <p className="text-white/30 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>{profile?.email}</p>
-            </div>
-            <div className="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center">
-              <User size={14} className="text-white/60" />
-            </div>
-            <motion.button
-              onClick={signOut}
-              className="flex items-center gap-2 text-white/30 hover:text-white text-xs font-bold uppercase tracking-wider transition-colors"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <LogOut size={13} /> Sign Out
-            </motion.button>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 py-10">
+    <DashboardLayout
+      loading={loading}
+      title="Client Portal"
+      userName={profile?.full_name?.split(" ")[0] ?? "there"}
+      roleName={profile?.company_name ?? ""}
+      userEmail={profile?.email ?? ""}
+      icon={User}
+      onSignOut={signOut}
+    >
         {/* Stats */}
         <motion.div
           className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-10"
@@ -225,9 +184,8 @@ export function ClientDashboard({ onNavigate }: { onNavigate: (p: string) => voi
             </motion.div>
           </div>
         </div>
-      </div>
 
-      {/* Project Details / Chat Overlay */}
+        {/* Project Details / Chat Overlay */}
       {activeProjectId && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <motion.div
@@ -258,6 +216,6 @@ export function ClientDashboard({ onNavigate }: { onNavigate: (p: string) => voi
           </motion.div>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 }

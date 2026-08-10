@@ -21,26 +21,24 @@ function AnimReveal({ children, className = "", delay = 0 }: { children: React.R
   );
 }
 
-const SERVICES_LIST = [
-  "Web App Development",
-  "Mobile App Development",
-  "E-Commerce Solution",
-  "Marketing & SEO",
-  "AI & SaaS",
-  "Business Software",
-  "WhatsApp & Automation",
-  "Custom AI Bot",
-  "AI Tool Integration",
-  "Video & Content Creation",
-  "Multiple Services",
-];
-const BUDGETS = ["Under $5K", "$5K – $15K", "$15K – $50K", "$50K – $150K", "$150K+"];
+const SALESPEOPLE_OPTIONS = ["1-5", "6-20", "21-50", "50+"];
+const ENQUIRIES_OPTIONS = ["Under 100/mo", "100-500/mo", "500-2000/mo", "2000+/mo"];
 
-// Paste your deployed Apps Script URL here after following the setup steps
 const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycby4YSqhMQ_Vv5GZs84NSbA7lh6m0EvG_I-3QpiNfbNNE4GEjuukXEOWA8Rkn7FyZquWVg/exec";
 
 export function ContactPage() {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", service: "", budget: "", message: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    city: "",
+    salespeople: "",
+    enquiries: "",
+    crm: "",
+    problem: "",
+    goals: ""
+  });
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -50,25 +48,22 @@ export function ContactPage() {
     setLoading(true);
     setError(false);
     try {
-      // 1. Insert into Supabase
+      // 1. Insert into Supabase (Updating fields to match old schema temporarily if exact match fails, or use standard names)
       const { error: supabaseError } = await supabase.from("leads").insert({
         name: form.name,
         email: form.email,
         phone: form.phone,
         company_name: form.company,
-        service_interest: form.service,
-        budget: form.budget,
-        message: form.message
+        service_interest: form.city + " | " + form.salespeople + " sales | " + form.enquiries + " enq | CRM: " + form.crm, // pack info if schema didn't change
+        budget: "",
+        message: "Problem: " + form.problem + "\n\nGoals: " + form.goals
       });
 
       if (supabaseError) {
         console.error("Supabase Error:", supabaseError);
-        // We can continue to try the Google Sheet as backup, or fail here.
-        // We'll continue so we don't break their existing flow if something goes wrong.
       }
 
       // 2. Insert into Google Sheets (Backup / Existing flow)
-      // mode: "no-cors" is required for Apps Script — response is opaque but data is written
       await fetch(SHEET_ENDPOINT, {
         method: "POST",
         mode: "no-cors",
@@ -79,9 +74,9 @@ export function ContactPage() {
           email: form.email,
           phone: form.phone || "",
           company: form.company || "",
-          service: form.service || "",
-          budget: form.budget || "",
-          message: form.message
+          service: form.city + " | " + form.salespeople + " | " + form.enquiries + " | " + form.crm,
+          budget: "",
+          message: "Problem: " + form.problem + "\nGoals: " + form.goals
         })
       });
 
@@ -103,10 +98,10 @@ export function ContactPage() {
               <span className="w-6 h-px bg-white/50" /> Get In Touch
             </p>
             <h1 className="text-white leading-[0.92] mb-6" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(3rem, 7vw, 5.5rem)", fontWeight: 900 }}>
-              LET'S BUILD<br /><span className="text-white">SOMETHING</span><br />EXCEPTIONAL
+              LET'S AUDIT YOUR<br /><span className="text-white">SALES WORKFLOW</span>
             </h1>
             <p className="text-white/60 text-lg leading-relaxed max-w-xl" style={{ fontFamily: "'Inter', sans-serif" }}>
-              Tell us about your project and we'll get back to you within one business day with a tailored plan.
+              Tell us how you currently manage property enquiries. We'll identify where AI and automation can speed up your response times and increase conversions.
             </p>
           </motion.div>
         </div>
@@ -115,14 +110,15 @@ export function ContactPage() {
       {/* Form + Info */}
       <section style={{ backgroundColor: "#f5f5f5" }} className="py-20">
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-[1fr_380px] gap-12">
-          {/* Form — plain div, no animation wrapper so inputs are always interactive */}
+          {/* Form */}
           <div className="bg-white p-8 lg:p-12 shadow-sm" style={{ position: "relative", zIndex: 1 }}>
               {!sent ? (
                 <>
-                  <h2 className="text-[#0a0a0a] font-black mb-2" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.8rem" }}>REQUEST A PROPOSAL</h2>
+                  <h2 className="text-[#0a0a0a] font-black mb-2" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.8rem" }}>FREE AI WORKFLOW AUDIT</h2>
                   <p className="text-[#999] text-sm mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>All fields marked with * are required.</p>
 
                   <form onSubmit={handleSubmit} className="space-y-5" style={{ pointerEvents: "auto", position: "relative", zIndex: 2 }}>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
                         <label className="block text-xs font-bold tracking-widest uppercase mb-2 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Full Name *</label>
@@ -151,8 +147,9 @@ export function ContactPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
-                        <label className="block text-xs font-bold tracking-widests uppercase mb-2 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Phone Number</label>
+                        <label className="block text-xs font-bold tracking-widest uppercase mb-2 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Phone / WhatsApp *</label>
                         <input
+                          required
                           type="tel"
                           value={form.phone}
                           onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -162,63 +159,100 @@ export function ContactPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold tracking-widests uppercase mb-2 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Company</label>
+                        <label className="block text-xs font-bold tracking-widest uppercase mb-2 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Company Name</label>
                         <input
                           value={form.company}
                           onChange={(e) => setForm({ ...form, company: e.target.value })}
-                          placeholder="Acme Corp"
+                          placeholder="Acme Real Estate"
                           className="w-full border border-[#e0e0e0] px-4 py-3 text-sm outline-none focus:border-black transition-colors bg-white text-black"
                           style={{ fontFamily: "'Inter', sans-serif" }}
                         />
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold tracking-widests uppercase mb-3 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Service Needed *</label>
-                      <div className="flex flex-wrap gap-2">
-                        {SERVICES_LIST.map((s) => (
-                          <button
-                            key={s}
-                            type="button"
-                            onClick={() => setForm({ ...form, service: s })}
-                            className={`px-3 py-1.5 text-xs font-bold tracking-wider uppercase border transition-all ${
-                              form.service === s ? "bg-black border-black text-white" : "border-[#e0e0e0] text-[#666] hover:border-black hover:text-black"
-                            }`}
-                            style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-                          >
-                            {s}
-                          </button>
-                        ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-xs font-bold tracking-widest uppercase mb-2 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>City</label>
+                        <input
+                          value={form.city}
+                          onChange={(e) => setForm({ ...form, city: e.target.value })}
+                          placeholder="Dubai, London, etc."
+                          className="w-full border border-[#e0e0e0] px-4 py-3 text-sm outline-none focus:border-black transition-colors bg-white text-black"
+                          style={{ fontFamily: "'Inter', sans-serif" }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold tracking-widest uppercase mb-2 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Current CRM</label>
+                        <input
+                          value={form.crm}
+                          onChange={(e) => setForm({ ...form, crm: e.target.value })}
+                          placeholder="Salesforce, Zoho, Excel, etc."
+                          className="w-full border border-[#e0e0e0] px-4 py-3 text-sm outline-none focus:border-black transition-colors bg-white text-black"
+                          style={{ fontFamily: "'Inter', sans-serif" }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-xs font-bold tracking-widest uppercase mb-3 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Size of Sales Team *</label>
+                        <div className="flex flex-wrap gap-2">
+                          {SALESPEOPLE_OPTIONS.map((s) => (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => setForm({ ...form, salespeople: s })}
+                              className={`px-3 py-1.5 text-xs font-bold tracking-wider uppercase border transition-all ${
+                                form.salespeople === s ? "bg-black border-black text-white" : "border-[#e0e0e0] text-[#666] hover:border-black hover:text-black"
+                              }`}
+                              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold tracking-widest uppercase mb-3 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Monthly Enquiries *</label>
+                        <div className="flex flex-wrap gap-2">
+                          {ENQUIRIES_OPTIONS.map((e) => (
+                            <button
+                              key={e}
+                              type="button"
+                              onClick={() => setForm({ ...form, enquiries: e })}
+                              className={`px-3 py-1.5 text-xs font-bold tracking-wider uppercase border transition-all ${
+                                form.enquiries === e ? "bg-black border-black text-white" : "border-[#e0e0e0] text-[#666] hover:border-black hover:text-black"
+                              }`}
+                              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                            >
+                              {e}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold tracking-widests uppercase mb-3 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Project Budget</label>
-                      <div className="flex flex-wrap gap-2">
-                        {BUDGETS.map((b) => (
-                          <button
-                            key={b}
-                            type="button"
-                            onClick={() => setForm({ ...form, budget: b })}
-                            className={`px-3 py-1.5 text-xs font-bold tracking-wider uppercase border transition-all ${
-                              form.budget === b ? "bg-[#0a0a0a] border-[#0a0a0a] text-white" : "border-[#e0e0e0] text-[#666] hover:border-[#0a0a0a] hover:text-[#0a0a0a]"
-                            }`}
-                            style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-                          >
-                            {b}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold tracking-widests uppercase mb-2 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Tell Us About Your Project *</label>
+                      <label className="block text-xs font-bold tracking-widest uppercase mb-2 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Biggest Lead-Management Problem *</label>
                       <textarea
                         required
-                        rows={5}
-                        value={form.message}
-                        onChange={(e) => setForm({ ...form, message: e.target.value })}
-                        placeholder="Share your goals, challenges, and any details that will help us craft the right proposal..."
+                        rows={3}
+                        value={form.problem}
+                        onChange={(e) => setForm({ ...form, problem: e.target.value })}
+                        placeholder="e.g. Leads take too long to get a response, too much junk data, hard to track follow-ups..."
+                        className="w-full border border-[#e0e0e0] px-4 py-3 text-sm outline-none focus:border-black transition-colors bg-white text-black resize-none"
+                        style={{ fontFamily: "'Inter', sans-serif" }}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold tracking-widest uppercase mb-2 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Automation Goals *</label>
+                      <textarea
+                        required
+                        rows={3}
+                        value={form.goals}
+                        onChange={(e) => setForm({ ...form, goals: e.target.value })}
+                        placeholder="e.g. We want to automate WhatsApp responses and sync leads directly to our CRM..."
                         className="w-full border border-[#e0e0e0] px-4 py-3 text-sm outline-none focus:border-black transition-colors bg-white text-black resize-none"
                         style={{ fontFamily: "'Inter', sans-serif" }}
                       />
@@ -232,12 +266,12 @@ export function ContactPage() {
 
                     <motion.button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || !form.salespeople || !form.enquiries}
                       className="bg-black hover:bg-black/90 disabled:opacity-50 text-white text-xs font-bold tracking-widest uppercase px-10 py-4 flex items-center gap-3 transition-colors group w-full justify-center"
                       style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-                      whileHover={loading ? {} : { scale: 1.02 }} whileTap={loading ? {} : { scale: 0.97 }}
+                      whileHover={loading || !form.salespeople || !form.enquiries ? {} : { scale: 1.02 }} whileTap={loading || !form.salespeople || !form.enquiries ? {} : { scale: 0.97 }}
                     >
-                      {loading ? "SENDING…" : <> SEND REQUEST <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /> </>}
+                      {loading ? "SENDING…" : <> CLAIM FREE AUDIT <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /> </>}
                     </motion.button>
                   </form>
                 </>
@@ -250,9 +284,9 @@ export function ContactPage() {
                   <div className="w-20 h-20 rounded-full bg-black flex items-center justify-center mx-auto mb-6">
                     <span className="text-white text-3xl">✓</span>
                   </div>
-                  <h2 className="text-[#0a0a0a] font-black mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "2rem" }}>MESSAGE SENT!</h2>
+                  <h2 className="text-[#0a0a0a] font-black mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "2rem" }}>REQUEST SENT!</h2>
                   <p className="text-[#666] text-base" style={{ fontFamily: "'Inter', sans-serif" }}>
-                    Thank you! We'll be in touch within one business day.
+                    Thank you! We'll review your workflow and be in touch within one business day.
                   </p>
                 </motion.div>
               )}
@@ -285,7 +319,7 @@ export function ContactPage() {
             <div className="bg-black p-8">
               <h3 className="text-white font-black mb-3 text-lg" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>BOOK A STRATEGY CALL</h3>
               <p className="text-white/80 text-sm mb-5" style={{ fontFamily: "'Inter', sans-serif" }}>
-                Prefer to talk first? Book a free 30-minute strategy call with one of our experts.
+                Prefer to talk first? Book a free 30-minute workflow review call with one of our experts.
               </p>
               <motion.button
                 className="bg-white hover:bg-white/90 text-black text-xs font-bold tracking-widest uppercase px-6 py-3 transition-colors w-full"
@@ -294,18 +328,6 @@ export function ContactPage() {
               >
                 SCHEDULE CALL
               </motion.button>
-            </div>
-
-            <div className="bg-[#f0f0f0] p-8">
-              <h3 className="text-[#0a0a0a] font-black mb-4 text-base" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.05em" }}>TYPICAL RESPONSE TIME</h3>
-              <div className="space-y-3">
-                {[["Proposals", "Within 24 hours"], ["Strategy Calls", "Same week"], ["Project Kickoff", "Within 2 weeks"]].map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between">
-                    <span className="text-[#555] text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>{k}</span>
-                    <span className="text-black text-xs font-bold uppercase tracking-wider" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{v}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           </AnimReveal>
         </div>

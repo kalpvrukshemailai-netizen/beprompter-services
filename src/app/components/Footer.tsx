@@ -8,10 +8,10 @@ interface FooterProps {
 }
 
 const COLS = [
-  { heading: "Services", links: [["AI Chatbots", "services"], ["AI Voice Agents", "services"], ["Workflow Automation", "services"], ["WhatsApp Automation", "services"], ["CRM Automation", "services"], ["Custom AI Agents", "services"], ["AI Tool Integration", "services"], ["Custom Software", "services"], ["Web Applications", "services"], ["Mobile Applications", "services"]] },
-  { heading: "Company", links: [["About Us", "about"], ["Case Studies", "casestudies"], ["Agency Partners", "partner"], ["Insights", "insights"], ["Contact", "contact"]] },
-  { heading: "Industries", links: [["Healthcare", "industries"], ["Real Estate", "industries"], ["Restaurants", "industries"], ["Manufacturing", "industries"], ["Finance", "industries"], ["Legal", "industries"], ["E-Commerce", "industries"], ["Marketing Agencies", "industries"]] },
-  { heading: "Resources", links: [["Book a Strategy Call", "contact"], ["Request Proposal", "contact"], ["Insights", "insights"], ["Agency Partner Programme", "partner"]] },
+  { heading: "Services", links: [["Property Lead Generation", "services"], ["WhatsApp & CRM Automation", "services"], ["AI Property Sales Agents", "services"], ["Property Websites & Funnels", "services"], ["Workflow Automation", "services"]] },
+  { heading: "Company", links: [["About Us", "about"], ["Contact", "contact"]] },
+  { heading: "Solutions", links: [["Real Estate Agencies", "about"], ["Property Developers", "about"], ["Brokerages", "about"]] },
+  { heading: "Resources", links: [["Get a Free AI Audit", "contact"], ["Contact Us", "contact"]] },
 ];
 
 export function Footer({ onNavigate }: FooterProps) {
@@ -39,7 +39,7 @@ export function Footer({ onNavigate }: FooterProps) {
             style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
             whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
           >
-            BOOK FREE STRATEGY CALL
+            GET A FREE AI WORKFLOW AUDIT
             <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </motion.button>
         </div>

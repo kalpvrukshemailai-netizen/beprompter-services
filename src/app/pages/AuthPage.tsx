@@ -63,14 +63,9 @@ function Select({ label, value, onChange, options, placeholder }: {
   );
 }
 
-interface ClientForm {
+interface AuthFormType {
   fullName: string; company: string; email: string; phone: string;
   industry: string; projectType: string; password: string;
-}
-
-interface PartnerForm {
-  fullName: string; agency: string; email: string; phone: string;
-  agencyType: string; website: string; password: string;
 }
 
 function ErrorBox({ message, email, onResend }: { message: string; email?: string; onResend?: () => void }) {
@@ -99,16 +94,16 @@ function ErrorBox({ message, email, onResend }: { message: string; email?: strin
   );
 }
 
-function ClientAuth({ mode, onSuccess, onVerificationNeeded }: {
+function AuthForm({ mode, onSuccess, onVerificationNeeded }: {
   mode: Mode; onSuccess: () => void; onVerificationNeeded: (email: string) => void;
 }) {
-  const [form, setForm] = useState<ClientForm>({ fullName: "", company: "", email: "", phone: "", industry: "", projectType: "", password: "" });
+  const [form, setForm] = useState<AuthFormType>({ fullName: "", company: "", email: "", phone: "", industry: "", projectType: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
 
-  const set = (k: keyof ClientForm) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: keyof AuthFormType) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const resendConfirmation = async () => {
     setResending(true);
@@ -203,107 +198,6 @@ function ClientAuth({ mode, onSuccess, onVerificationNeeded }: {
   );
 }
 
-function PartnerAuth({ mode, onSuccess, onVerificationNeeded }: {
-  mode: Mode; onSuccess: () => void; onVerificationNeeded: (email: string) => void;
-}) {
-  const [form, setForm] = useState<PartnerForm>({ fullName: "", agency: "", email: "", phone: "", agencyType: "", website: "", password: "" });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [resending, setResending] = useState(false);
-  const [resent, setResent] = useState(false);
-
-  const set = (k: keyof PartnerForm) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
-
-  const resendConfirmation = async () => {
-    setResending(true);
-    await supabase.auth.resend({ type: "signup", email: form.email });
-    setResending(false);
-    setResent(true);
-    setTimeout(() => setResent(false), 4000);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    if (mode === "signup") {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          data: {
-            role: "developer" as UserRole, // Example fallback for partner replacement
-            full_name: form.fullName,
-            company_name: form.agency,
-          },
-        },
-      });
-      if (signUpError) { setError(signUpError.message); setLoading(false); return; }
-
-      if (data.session) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from("profiles").update({
-            phone: form.phone, agency_type: form.agencyType, website: form.website,
-          }).eq("id", user.id);
-        }
-        onSuccess();
-      } else {
-        onVerificationNeeded(form.email);
-      }
-    } else {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
-      if (signInError) { setError(signInError.message); setLoading(false); return; }
-      onSuccess();
-    }
-    setLoading(false);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {mode === "signup" && (
-        <>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Your Name" value={form.fullName} onChange={set("fullName")} placeholder="Jane Smith" />
-            <Field label="Agency Name" value={form.agency} onChange={set("agency")} placeholder="Studio Name" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Select label="Agency Type" value={form.agencyType} onChange={set("agencyType")} options={AGENCY_TYPES} placeholder="Select type" />
-            <Field label="Website" type="url" value={form.website} onChange={set("website")} placeholder="https://youragency.com" required={false} />
-          </div>
-          <Field label="Phone" type="tel" value={form.phone} onChange={set("phone")} placeholder="+1 555 000 0000" required={false} />
-        </>
-      )}
-      <Field label="Email" type="email" value={form.email} onChange={set("email")} placeholder="you@agency.com" />
-      <Field label="Password" type="password" value={form.password} onChange={set("password")} placeholder="Min. 8 characters" />
-
-      {error && (
-        <ErrorBox
-          message={error}
-          email={form.email}
-          onResend={resending || resent ? undefined : resendConfirmation}
-        />
-      )}
-      {resent && (
-        <div className="flex items-center gap-2 text-green-400 text-xs p-3 bg-green-400/8 border border-green-400/20">
-          <CheckCircle size={14} />
-          <span style={{ fontFamily: "'Inter', sans-serif" }}>Confirmation email resent.</span>
-        </div>
-      )}
-
-      <motion.button
-        type="submit" disabled={loading}
-        className="w-full flex items-center justify-center gap-3 text-xs font-black tracking-widest uppercase py-4 hover:opacity-90 transition-opacity disabled:opacity-50"
-        style={{ fontFamily: "'Barlow Condensed', sans-serif", backgroundColor: "#60c8ff", color: "#000" }}
-        whileHover={{ scale: loading ? 1 : 1.01 }} whileTap={{ scale: 0.98 }}
-      >
-        {loading ? <Loader2 size={14} className="animate-spin" /> : mode === "signup" ? "CREATE PARTNER ACCOUNT" : "PARTNER SIGN IN"}
-        {!loading && <ArrowRight size={13} />}
-      </motion.button>
-    </form>
-  );
-}
 
 function VerifyEmailScreen({ email, onBack }: { email: string; onBack: () => void }) {
   const [resending, setResending] = useState(false);
@@ -466,7 +360,7 @@ export function AuthPage({ onNavigate, defaultRole = "client", defaultMode = "si
               exit={{ opacity: 0, x: -16 }}
               transition={{ duration: 0.25 }}
             >
-              <ClientAuth mode={mode} onSuccess={onSuccess} onVerificationNeeded={onVerificationNeeded} />
+              <AuthForm mode={mode} onSuccess={onSuccess} onVerificationNeeded={onVerificationNeeded} />
             </motion.div>
           </AnimatePresence>
         </div>

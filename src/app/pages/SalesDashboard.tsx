@@ -1,21 +1,10 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { LogOut, Phone, Users, CheckCircle, Clock, X, MapPin, Globe, Star } from "lucide-react";
+import { LogOut, Phone, Users, CheckCircle, Clock, X, MapPin, Globe, Star, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase, Profile } from "@/lib/supabase";
+import { StatCard } from "@/app/components/ui/StatCard";
+import { DashboardLayout } from "@/app/components/DashboardLayout";
 
-function StatCard({ icon: Icon, label, value, accent = "#60c8ff" }: { icon: React.ElementType; label: string; value: string; accent?: string }) {
-  return (
-    <div className="border border-white/8 p-6 flex items-start gap-4" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
-      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${accent}18` }}>
-        <Icon size={16} style={{ color: accent }} />
-      </div>
-      <div>
-        <p className="text-white font-black text-2xl leading-none mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{value}</p>
-        <p className="text-white/40 text-xs uppercase tracking-wider" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{label}</p>
-      </div>
-    </div>
-  );
-}
 
 export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -29,7 +18,10 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
   const [cityFilter, setCityFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [ratingFilter, setRatingFilter] = useState<string>("");
+  const [reviewCountFilter, setReviewCountFilter] = useState<string>("");
   const [websiteFilter, setWebsiteFilter] = useState<string>("");
+  
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -107,38 +99,63 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
     );
   }
 
-  return (
-    <div className="min-h-screen pt-16" style={{ backgroundColor: "#0a0a0a" }}>
-      {/* Top bar */}
-      <div className="border-b border-white/8 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <p className="text-white/30 text-xs tracking-[0.25em] uppercase mb-0.5 text-[#fbbf24]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Sales CRM</p>
-            <p className="text-white font-black text-lg" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-              Welcome back, {profile?.full_name?.split(" ")[0] ?? "Sales"}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-white/60 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>Sales Team</p>
-              <p className="text-white/30 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>{profile?.email}</p>
-            </div>
-            <div className="w-9 h-9 rounded-full bg-[#fbbf24]/10 border border-[#fbbf24]/20 flex items-center justify-center">
-              <Phone size={14} className="text-[#fbbf24]" />
-            </div>
-            <motion.button
-              onClick={signOut}
-              className="flex items-center gap-2 text-white/30 hover:text-white text-xs font-bold uppercase tracking-wider transition-colors"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <LogOut size={13} /> Sign Out
-            </motion.button>
-          </div>
-        </div>
-      </div>
+  const filteredLeads = leads.filter(l => {
+    if (cityFilter && (l.city || "").toLowerCase() !== cityFilter.toLowerCase()) return false;
+    if (statusFilter && l.status !== statusFilter) return false;
+    if (ratingFilter) {
+       const leadRating = parseFloat(l.rating) || 0;
+       if (ratingFilter === "4.5+" && leadRating < 4.5) return false;
+       if (ratingFilter === "4.0+" && leadRating < 4.0) return false;
+       if (ratingFilter === "3.0+" && leadRating < 3.0) return false;
+    }
+    if (reviewCountFilter) {
+       const leadReviews = parseInt(String(l.reviews || "0").replace(/\D/g, '')) || 0;
+       if (reviewCountFilter === "10+" && leadReviews < 10) return false;
+       if (reviewCountFilter === "50+" && leadReviews < 50) return false;
+       if (reviewCountFilter === "100+" && leadReviews < 100) return false;
+    }
+    if (websiteFilter) {
+       const hasWebsite = l.website && l.website.trim().length > 0;
+       if (websiteFilter === "yes" && !hasWebsite) return false;
+       if (websiteFilter === "no" && hasWebsite) return false;
+    }
+    return true;
+  });
 
-      <div className="max-w-7xl mx-auto px-6 py-10">
+  const sortedLeads = [...filteredLeads];
+  if (sortConfig) {
+    sortedLeads.sort((a, b) => {
+      if (sortConfig.key === 'rating') {
+        const ratingA = parseFloat(a.rating) || 0;
+        const ratingB = parseFloat(b.rating) || 0;
+        if (ratingA < ratingB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (ratingA > ratingB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      }
+      return 0;
+    });
+  }
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'desc'; // default for rating is usually desc to see best first
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'desc') {
+      direction = 'asc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  return (
+    <DashboardLayout
+      loading={loading}
+      title="Sales Team HQ"
+      titleAccent="#fbbf24"
+      userName={profile?.full_name?.split(" ")[0] ?? "Rep"}
+      roleName="Growth Team"
+      userEmail={profile?.email ?? ""}
+      icon={Phone}
+      iconAccent="#fbbf24"
+      onSignOut={signOut}
+    >
         {/* Stats */}
         <motion.div
           className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-10"
@@ -163,24 +180,7 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                 <div className="flex items-center gap-4">
                   <p className="text-white font-black text-sm tracking-wider uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>My Leads</p>
                   <span className="text-white/40 text-xs bg-white/5 px-2 py-1 rounded" style={{ fontFamily: "'Inter', sans-serif" }}>
-                    Showing {(() => {
-                      return leads.filter(l => {
-                        if (cityFilter && (l.city || "").toLowerCase() !== cityFilter.toLowerCase()) return false;
-                        if (statusFilter && l.status !== statusFilter) return false;
-                        if (ratingFilter) {
-                           const leadRating = parseFloat(l.rating) || 0;
-                           if (ratingFilter === "4.5+" && leadRating < 4.5) return false;
-                           if (ratingFilter === "4.0+" && leadRating < 4.0) return false;
-                           if (ratingFilter === "3.0+" && leadRating < 3.0) return false;
-                        }
-                        if (websiteFilter) {
-                           const hasWebsite = l.website && l.website.trim().length > 0;
-                           if (websiteFilter === "yes" && !hasWebsite) return false;
-                           if (websiteFilter === "no" && hasWebsite) return false;
-                        }
-                        return true;
-                      }).length;
-                    })()} leads
+                    Showing {filteredLeads.length} leads
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -219,6 +219,17 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                     <option value="3.0+">3.0+ Stars</option>
                   </select>
                   <select
+                    value={reviewCountFilter}
+                    onChange={(e) => setReviewCountFilter(e.target.value)}
+                    className="bg-black/50 border border-white/10 text-white text-xs px-3 py-1.5 outline-none rounded transition-colors"
+                    style={{ fontFamily: "'Inter', sans-serif" }}
+                  >
+                    <option value="">Any # of Reviews</option>
+                    <option value="10+">10+ Reviews</option>
+                    <option value="50+">50+ Reviews</option>
+                    <option value="100+">100+ Reviews</option>
+                  </select>
+                  <select
                     value={websiteFilter}
                     onChange={(e) => setWebsiteFilter(e.target.value)}
                     className="bg-black/50 border border-white/10 text-white text-xs px-3 py-1.5 outline-none rounded transition-colors"
@@ -231,56 +242,43 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                 </div>
               </div>
 
-              {(() => {
-                const filteredLeads = leads.filter(l => {
-                  if (cityFilter && (l.city || "").toLowerCase() !== cityFilter.toLowerCase()) return false;
-                  if (statusFilter && l.status !== statusFilter) return false;
-                  if (ratingFilter) {
-                     const leadRating = parseFloat(l.rating) || 0;
-                     if (ratingFilter === "4.5+" && leadRating < 4.5) return false;
-                     if (ratingFilter === "4.0+" && leadRating < 4.0) return false;
-                     if (ratingFilter === "3.0+" && leadRating < 3.0) return false;
-                  }
-                  if (websiteFilter) {
-                     const hasWebsite = l.website && l.website.trim().length > 0;
-                     if (websiteFilter === "yes" && !hasWebsite) return false;
-                     if (websiteFilter === "no" && hasWebsite) return false;
-                  }
-                  return true;
-                });
-
-                if (leads.length === 0) {
-                  return (
-                    <div className="border border-dashed border-white/10 rounded p-10 text-center">
-                      <Users size={28} className="mx-auto mb-3 text-white/15" />
-                      <p className="text-white/30 text-sm font-semibold mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>No leads assigned yet</p>
-                    </div>
-                  );
-                }
-
-                if (filteredLeads.length === 0) {
-                  return (
-                    <div className="border border-dashed border-white/10 rounded p-10 text-center">
-                      <p className="text-white/30 text-sm font-semibold mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>No leads match these filters.</p>
-                    </div>
-                  );
-                }
-
-                return (
+              {leads.length === 0 ? (
+                <div className="border border-dashed border-white/10 rounded p-10 text-center">
+                  <Users size={28} className="mx-auto mb-3 text-white/15" />
+                  <p className="text-white/30 text-sm font-semibold mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>No leads assigned yet</p>
+                </div>
+              ) : filteredLeads.length === 0 ? (
+                <div className="py-20 text-center border-t border-white/5">
+                  <Users size={32} className="mx-auto text-white/10 mb-4" />
+                  <p className="text-white/30 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>No leads match these filters.</p>
+                </div>
+              ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-white/8" style={{ backgroundColor: "rgba(255,255,255,0.03)" }}>
                         <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Company</th>
                         <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Contact Info</th>
-                        <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Rating</th>
+                        <th 
+                          className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest cursor-pointer hover:text-white transition-colors" 
+                          style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                          onClick={() => handleSort('rating')}
+                        >
+                          <div className="flex items-center gap-2">
+                            Rating
+                            {sortConfig?.key === 'rating' ? (
+                              sortConfig.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+                            ) : (
+                              <ArrowUpDown size={12} className="opacity-50" />
+                            )}
+                          </div>
+                        </th>
                         <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Status</th>
-                        <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest text-right" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Assign To</th>
                         <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest text-right" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredLeads.map((l) => (
+                      {sortedLeads.map((l) => (
                         <tr key={l.id} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors group">
                           <td className="p-4">
                             <p className="text-white/90 text-sm font-semibold" style={{ fontFamily: "'Inter', sans-serif" }}>{l.name}</p>
@@ -303,7 +301,7 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                             <div className="flex items-center gap-1">
                               <Star size={12} className="text-yellow-500 fill-yellow-500" />
                               <span className="text-white/90 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>{l.rating || "-"}</span>
-                              <span className="text-white/40 text-xs ml-1" style={{ fontFamily: "'Inter', sans-serif" }}>({l.reviews || "0"})</span>
+                              <span className="text-white/40 text-xs ml-1" style={{ fontFamily: "'Inter', sans-serif" }}>({String(l.reviews || "0").replace(/\D/g, '')})</span>
                             </div>
                           </td>
                           <td className="p-4">
@@ -321,29 +319,6 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                               <option value="Not Converted">Not Converted</option>
                             </select>
                           </td>
-                          <td className="p-4 text-right">
-                        {l.status === 'Converted' ? (
-                          developers.length === 0 ? (
-                            <span className="text-white/30 text-[10px] uppercase">No devs</span>
-                          ) : (
-                            <div className="flex flex-col items-end">
-                              <span className="text-white/40 text-[9px] uppercase tracking-widest mb-1 font-bold" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Developer</span>
-                              <select
-                                value={l.developer_id || ""}
-                                onChange={(e) => updateDeveloper(l.id, e.target.value)}
-                                className="bg-black/50 border border-white/10 text-white text-[10px] px-2 py-1 outline-none rounded transition-colors w-28 text-right"
-                                style={{ fontFamily: "'Inter', sans-serif" }}
-                              >
-                                {developers.map(dev => (
-                                  <option key={dev.id} value={dev.id}>{dev.full_name}</option>
-                                ))}
-                              </select>
-                            </div>
-                          )
-                        ) : (
-                          <span className="text-white/20 text-[10px]">—</span>
-                        )}
-                      </td>
                       <td className="p-4 text-right">
                             <button 
                               onClick={() => setActiveLeadId(l.id)}
@@ -358,14 +333,12 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                     </tbody>
                   </table>
                 </div>
-              );
-              })()}
+              )}
             </motion.div>
           </div>
         </div>
-      </div>
 
-      {/* Lead Details Overlay */}
+        {/* Lead Details Overlay */}
       {activeLeadId && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <motion.div
@@ -398,23 +371,115 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
             <div className="flex-1 overflow-y-auto p-6 space-y-8">
               {leads.filter(l => l.id === activeLeadId).map(l => (
                 <div key={l.id} className="space-y-6">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-white/40 text-xs font-bold uppercase tracking-widest block" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Notes</label>
-                      {savingNoteId === l.id && <span className="text-[#34d399] text-[10px] uppercase font-bold tracking-widest animate-pulse" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Saved!</span>}
+                  {l.status === 'Converted' && (
+                    <div className="bg-[#34d399]/10 border border-[#34d399]/20 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div>
+                        <p className="text-[#34d399] font-bold text-sm uppercase tracking-widest mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Developer Assignment</p>
+                        <p className="text-white/60 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>Select the developer to hand this project over to.</p>
+                      </div>
+                      
+                      {developers.length === 0 ? (
+                        <div className="bg-black/50 px-3 py-2 rounded border border-white/10 text-white/40 text-xs">No Developers Available</div>
+                      ) : (
+                        <select
+                          value={l.developer_id || ""}
+                          onChange={(e) => updateDeveloper(l.id, e.target.value)}
+                          className="bg-black/50 border border-[#34d399]/30 text-white text-sm px-4 py-2 outline-none rounded transition-colors min-w-[200px]"
+                          style={{ fontFamily: "'Inter', sans-serif" }}
+                        >
+                          <option value="" disabled>Select Developer...</option>
+                          {developers.map(dev => (
+                            <option key={dev.id} value={dev.id}>{dev.full_name || dev.email}</option>
+                          ))}
+                        </select>
+                      )}
                     </div>
-                    <textarea 
-                      className="w-full bg-black/50 border border-white/10 rounded p-4 text-sm text-white/90 h-32 focus:border-white/30 outline-none transition-colors"
-                      style={{ fontFamily: "'Inter', sans-serif" }}
-                      placeholder="Add your sales notes here..."
-                      defaultValue={l.notes || ""}
-                      onBlur={async (e) => {
-                        setSavingNoteId(l.id);
-                        await supabase.from("crm_leads").update({ notes: e.target.value }).eq("id", l.id);
-                        setLeads(leads.map(lead => lead.id === l.id ? { ...lead, notes: e.target.value } : lead));
-                        setTimeout(() => setSavingNoteId(null), 2000);
-                      }}
-                    />
+                  )}
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-white font-black text-sm uppercase tracking-wider" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Discovery Notes</h3>
+                    </div>
+                    
+                    {/* General Notes */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-white/40 text-xs font-bold uppercase tracking-widest block" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>General Notes</label>
+                        {savingNoteId === l.id + 'notes' && <span className="text-[#34d399] text-[10px] uppercase font-bold tracking-widest animate-pulse" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Saved!</span>}
+                      </div>
+                      <textarea 
+                        className="w-full bg-black/50 border border-white/10 rounded p-4 text-sm text-white/90 h-24 focus:border-white/30 outline-none transition-colors"
+                        style={{ fontFamily: "'Inter', sans-serif" }}
+                        placeholder="General context about the client..."
+                        defaultValue={l.notes || ""}
+                        onBlur={async (e) => {
+                          setSavingNoteId(l.id + 'notes');
+                          await supabase.from("crm_leads").update({ notes: e.target.value }).eq("id", l.id);
+                          setLeads(leads.map(lead => lead.id === l.id ? { ...lead, notes: e.target.value } : lead));
+                          setTimeout(() => setSavingNoteId(null), 2000);
+                        }}
+                      />
+                    </div>
+
+                    {/* Services Wanted */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[#60c8ff]/80 text-xs font-bold uppercase tracking-widest block" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Services Requested</label>
+                        {savingNoteId === l.id + 'services' && <span className="text-[#34d399] text-[10px] uppercase font-bold tracking-widest animate-pulse" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Saved!</span>}
+                      </div>
+                      <textarea 
+                        className="w-full bg-[#60c8ff]/5 border border-[#60c8ff]/20 rounded p-4 text-sm text-white/90 h-20 focus:border-[#60c8ff]/50 outline-none transition-colors"
+                        style={{ fontFamily: "'Inter', sans-serif" }}
+                        placeholder="What exact services do they need? (e.g., Website, SEO, Branding)"
+                        defaultValue={l.services_wanted || ""}
+                        onBlur={async (e) => {
+                          setSavingNoteId(l.id + 'services');
+                          await supabase.from("crm_leads").update({ services_wanted: e.target.value }).eq("id", l.id);
+                          setLeads(leads.map(lead => lead.id === l.id ? { ...lead, services_wanted: e.target.value } : lead));
+                          setTimeout(() => setSavingNoteId(null), 2000);
+                        }}
+                      />
+                    </div>
+
+                    {/* Budget & Pricing */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[#fbbf24]/80 text-xs font-bold uppercase tracking-widest block" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Budget & Pricing</label>
+                        {savingNoteId === l.id + 'budget' && <span className="text-[#34d399] text-[10px] uppercase font-bold tracking-widest animate-pulse" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Saved!</span>}
+                      </div>
+                      <textarea 
+                        className="w-full bg-[#fbbf24]/5 border border-[#fbbf24]/20 rounded p-4 text-sm text-white/90 h-20 focus:border-[#fbbf24]/50 outline-none transition-colors"
+                        style={{ fontFamily: "'Inter', sans-serif" }}
+                        placeholder="What is their budget? Is price an issue?"
+                        defaultValue={l.budget_constraints || ""}
+                        onBlur={async (e) => {
+                          setSavingNoteId(l.id + 'budget');
+                          await supabase.from("crm_leads").update({ budget_constraints: e.target.value }).eq("id", l.id);
+                          setLeads(leads.map(lead => lead.id === l.id ? { ...lead, budget_constraints: e.target.value } : lead));
+                          setTimeout(() => setSavingNoteId(null), 2000);
+                        }}
+                      />
+                    </div>
+
+                    {/* Objections / Roadblocks */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[#f87171]/80 text-xs font-bold uppercase tracking-widest block" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Objections / Real Cause</label>
+                        {savingNoteId === l.id + 'objections' && <span className="text-[#34d399] text-[10px] uppercase font-bold tracking-widest animate-pulse" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Saved!</span>}
+                      </div>
+                      <textarea 
+                        className="w-full bg-[#f87171]/5 border border-[#f87171]/20 rounded p-4 text-sm text-white/90 h-20 focus:border-[#f87171]/50 outline-none transition-colors"
+                        style={{ fontFamily: "'Inter', sans-serif" }}
+                        placeholder="Why are they hesitant? What is the real roadblock preventing a sale?"
+                        defaultValue={l.objections || ""}
+                        onBlur={async (e) => {
+                          setSavingNoteId(l.id + 'objections');
+                          await supabase.from("crm_leads").update({ objections: e.target.value }).eq("id", l.id);
+                          setLeads(leads.map(lead => lead.id === l.id ? { ...lead, objections: e.target.value } : lead));
+                          setTimeout(() => setSavingNoteId(null), 2000);
+                        }}
+                      />
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
@@ -454,12 +519,25 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                       </p>
                     </div>
                   )}
+
+                  <div className="pt-6 mt-6 border-t border-white/10">
+                    <button
+                      onClick={() => setActiveLeadId(null)}
+                      className="w-full bg-[#fbbf24] text-black hover:bg-[#fbbf24]/90 py-4 font-black uppercase tracking-widest text-sm transition-colors rounded"
+                      style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                    >
+                      {l.status === 'Converted' && l.developer_id ? "Save & Send to Developer" : "Save Lead Details"}
+                    </button>
+                    <p className="text-white/30 text-[10px] text-center mt-3 uppercase tracking-widest" style={{ fontFamily: "'Inter', sans-serif" }}>
+                      Notes automatically save as you type
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
           </motion.div>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 }
