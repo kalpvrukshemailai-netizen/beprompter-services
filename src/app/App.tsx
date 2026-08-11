@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Nav } from "@/app/components/Nav";
 import { Footer } from "@/app/components/Footer";
 import { HomePage } from "@/app/pages/HomePage";
+import { RealEstateIndustryPage } from "@/app/pages/RealEstateIndustryPage";
 import { AboutPage } from "@/app/pages/AboutPage";
 import { ServicesPage } from "@/app/pages/ServicesPage";
 import { ContactPage } from "@/app/pages/ContactPage";
@@ -16,7 +17,7 @@ import type { User } from "@supabase/supabase-js";
 
 type Page =
   | "home" | "about" | "services"
-  | "contact"
+  | "contact" | "real-estate"
   | "auth" | "client-dashboard" | "developer-dashboard" | "sales-dashboard" | "admin-dashboard";
 
 const pageVariants = {
@@ -113,6 +114,7 @@ export default function App() {
     }
     switch (page) {
       case "home":             return <HomePage onNavigate={navigate} />;
+      case "real-estate":      return <RealEstateIndustryPage onNavigate={navigate} />;
       case "about":            return <AboutPage onNavigate={navigate} />;
       case "services":         return <ServicesPage onNavigate={navigate} initialServiceIndex={serviceIndex} scrollToDetail={scrollToDetail} />;
       case "contact":          return <ContactPage />;

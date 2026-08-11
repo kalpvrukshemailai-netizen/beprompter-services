@@ -3,8 +3,15 @@ import { motion, useInView } from "motion/react";
 import { ArrowRight } from "lucide-react";
 
 
-import { AnimReveal } from "@/app/components/ui/AnimReveal";
-import { PageHero } from "@/app/components/ui/PageHero";
+function AnimReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-60px" });
+  return (
+    <motion.div ref={ref} className={className} initial={{ opacity: 0, y: 40 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}>
+      {children}
+    </motion.div>
+  );
+}
 
 const ROLES = [
   "Founder & CEO",
@@ -25,20 +32,24 @@ const VALUES = [
 export function AboutPage({ onNavigate }: { onNavigate: (p: string) => void }) {
   return (
     <div className="bg-white">
-      <PageHero
-        category="About BePrompter"
-        title={
-          <>
-            REAL ESTATE<br />
-            <span className="text-white">AI ENGINEERING</span><br />
-            PARTNER
-          </>
-        }
-        description={
-          <p>Founded to bridge the gap between cutting-edge AI and real estate sales workflows. BePrompter combines technical depth with industry expertise to build systems that capture, qualify, and convert property enquiries.</p>
-        }
-      />
-      <section className="bg-[#0a0a0a]">
+      {/* Hero */}
+      <section className="bg-[#0a0a0a] pt-16">
+        <div className="max-w-7xl mx-auto px-6 py-20 lg:py-28">
+          <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} className="max-w-4xl">
+            <p className="text-white/50 text-xs font-bold tracking-[0.3em] uppercase mb-6 flex items-center gap-3" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+              <span className="w-6 h-px bg-white/50" /> About BePrompter
+            </p>
+            <h1 className="text-white leading-[0.92] mb-8" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(3rem, 7vw, 6rem)", fontWeight: 900 }}>
+              WE ARE AN<br />
+              <span className="text-white">AI ENGINEERING</span><br />
+              PARTNER
+            </h1>
+            <p className="text-white/60 text-lg leading-relaxed max-w-2xl" style={{ fontFamily: "'Inter', sans-serif" }}>
+              Founded to bridge the gap between cutting-edge AI and real business results, BePrompter combines technical depth with creative excellence to deliver digital solutions that actually move the needle.
+            </p>
+          </motion.div>
+        </div>
+
         {/* Full-width image */}
         <motion.div
           className="relative h-[400px] lg:h-[500px] overflow-hidden"
@@ -65,13 +76,13 @@ export function AboutPage({ onNavigate }: { onNavigate: (p: string) => void }) {
           <AnimReveal>
             <p className="text-black/50 text-xs font-bold tracking-[0.25em] uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Our Story</p>
             <h2 className="text-[#0a0a0a] leading-[0.95] mb-6" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(2rem, 4vw, 3.2rem)", fontWeight: 900 }}>
-              BUILT FOR<br />REAL ESTATE SALES
+              BUILT TO BRIDGE<br />AI AND BUSINESS
             </h2>
             <p className="text-[#555] text-base leading-relaxed mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-              BePrompter was founded with a clear mission: build AI systems that make real-estate businesses run better. Not demos. Not experiments. Production-grade lead generation funnels, WhatsApp automation, and AI sales agents that capture leads, qualify enquiries, and help developers and brokerages scale.
+              BePrompter was founded with a clear mission: build AI systems that make real businesses run better. Not demos. Not experiments. Production-grade AI agents, automation, and software that reduce costs, save time, and help companies scale.
             </p>
             <p className="text-[#555] text-base leading-relaxed mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>
-              We work with real estate developers, property agencies, and brokerages who want to modernize their sales workflow. Every system we build is custom-engineered for your property pipeline — no generic templates, no off-the-shelf chatbots repurposed to fit.
+              We work with business owners, founders, and agency partners who are serious about AI. Every system we build is custom-engineered for your workflow — no templates, no off-the-shelf tools repurposed to fit.
             </p>
             <button
               onClick={() => onNavigate("contact")}

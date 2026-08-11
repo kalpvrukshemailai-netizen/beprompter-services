@@ -6,11 +6,11 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import beLogo from "@/imports/BE-logo.jpeg";
 
 const SERVICE_SUB = [
-  { label: "Lead Generation",   idx: 0 },
-  { label: "WhatsApp & CRM",    idx: 1 },
-  { label: "AI Sales Agents",   idx: 2 },
-  { label: "Websites & Funnels",idx: 3 },
-  { label: "Workflow Auto",     idx: 4 },
+  { label: "AI Agents",         idx: 0 },
+  { label: "AI Voice Agents",   idx: 1 },
+  { label: "Workflow Auto",     idx: 2 },
+  { label: "WhatsApp & CRM",    idx: 4 },
+  { label: "Websites",          idx: 5 },
 ];
 
 const NAV_ITEMS = [
@@ -18,8 +18,11 @@ const NAV_ITEMS = [
     label: "Services", page: "services",
     sub: SERVICE_SUB.map((s) => `${s.label}|services:${s.idx}`),
   },
+  {
+    label: "Industries", page: "real-estate",
+    sub: ["Real Estate|real-estate"],
+  },
   { label: "How It Works", page: "home:how-it-works" },
-  { label: "AI System", page: "home:real-estate-ai-system" },
   { label: "About", page: "about" },
 ];
 

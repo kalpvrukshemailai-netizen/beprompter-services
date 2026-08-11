@@ -35,7 +35,7 @@ export function Footer({ onNavigate }: FooterProps) {
           </div>
           <motion.button
             onClick={() => go("contact")}
-            className="group flex items-center gap-4 border border-white/30 hover:border-white text-white text-sm font-black tracking-widest uppercase px-10 py-5 hover:bg-white hover:text-black transition-all"
+            className="group flex items-center gap-4 bg-white text-black text-sm font-black tracking-widest uppercase px-10 py-5 hover:bg-gray-200 transition-all shadow-xl"
             style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
             whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
           >
