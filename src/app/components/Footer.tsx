@@ -8,7 +8,7 @@ interface FooterProps {
 }
 
 const COLS = [
-  { heading: "Services", links: [["Property Lead Generation", "services"], ["WhatsApp & CRM Automation", "services"], ["AI Property Sales Agents", "services"], ["Property Websites & Funnels", "services"], ["Workflow Automation", "services"]] },
+  { heading: "Services", links: [["AI WhatsApp Bot", "services"], ["WhatsApp-to-CRM Engine", "services"], ["Smart Landing Pages", "services"], ["Internal Brain AI", "services"]] },
   { heading: "Company", links: [["About Us", "about"], ["Contact", "contact"]] },
   { heading: "Solutions", links: [["Real Estate Agencies", "about"], ["Property Developers", "about"], ["Brokerages", "about"]] },
   { heading: "Resources", links: [["Get a Free AI Audit", "contact"], ["Contact Us", "contact"]] },
@@ -89,9 +89,9 @@ export function Footer({ onNavigate }: FooterProps) {
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col lg:flex-row items-center justify-between gap-2">
           <p className="text-white/20 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>© 2026 BePrompter Technology. All rights reserved.</p>
           <div className="flex gap-6">
-            {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((item) => (
-              <a key={item} href="#" className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>{item}</a>
-            ))}
+            <button onClick={() => go("privacy-policy")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Privacy Policy</button>
+            <a href="#" className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Terms of Service</a>
+            <a href="#" className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Cookie Policy</a>
           </div>
         </div>
       </div>

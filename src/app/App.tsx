@@ -12,12 +12,20 @@ import { ClientDashboard } from "@/app/pages/ClientDashboard";
 import { DeveloperDashboard } from "@/app/pages/DeveloperDashboard";
 import { SalesDashboard } from "@/app/pages/SalesDashboard";
 import { AdminDashboard } from "@/app/pages/AdminDashboard";
+import { IndustriesPage } from "@/app/pages/IndustriesPage";
+import { InsightsPage } from "@/app/pages/InsightsPage";
+import { CaseStudiesPage } from "@/app/pages/CaseStudiesPage";
+import { AgencyPartnersPage } from "@/app/pages/AgencyPartnersPage";
+import { TrustPage } from "@/app/pages/TrustPage";
+import { PrivacyPolicyPage } from "@/app/pages/PrivacyPolicyPage";
+import { LetsTalkPage } from "@/app/pages/LetsTalkPage";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
 type Page =
   | "home" | "about" | "services"
   | "contact" | "real-estate"
+  | "industries" | "insights" | "case-studies" | "agency-partners" | "trust" | "privacy-policy" | "lets-talk"
   | "auth" | "client-dashboard" | "developer-dashboard" | "sales-dashboard" | "admin-dashboard";
 
 const pageVariants = {
@@ -118,6 +126,13 @@ export default function App() {
       case "about":            return <AboutPage onNavigate={navigate} />;
       case "services":         return <ServicesPage onNavigate={navigate} initialServiceIndex={serviceIndex} scrollToDetail={scrollToDetail} />;
       case "contact":          return <ContactPage />;
+      case "industries":       return <IndustriesPage onNavigate={navigate} />;
+      case "insights":         return <InsightsPage onNavigate={navigate} />;
+      case "case-studies":     return <CaseStudiesPage onNavigate={navigate} />;
+      case "agency-partners":  return <AgencyPartnersPage onNavigate={navigate} />;
+      case "trust":            return <TrustPage onNavigate={navigate} />;
+      case "privacy-policy":   return <PrivacyPolicyPage />;
+      case "lets-talk":        return <LetsTalkPage />;
       case "auth":             return <AuthPage onNavigate={navigate} />;
       case "client-dashboard": return <ClientDashboard onNavigate={navigate} />;
       case "developer-dashboard":return <DeveloperDashboard onNavigate={navigate} />;

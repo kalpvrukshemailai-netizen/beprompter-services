@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, useInView, AnimatePresence, useScroll, useTransform } from "motion/react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, TriangleAlert, CircleCheck, Bot, Database, Monitor, MessageSquare } from "lucide-react";
 import { CheckoutModal } from "@/app/components/CheckoutModal";
 import { MagneticButton } from "@/app/components/ui/MagneticButton";
 import { TiltCard } from "@/app/components/ui/TiltCard";
@@ -15,396 +15,233 @@ function AnimReveal({ children, className = "", delay = 0 }: { children: React.R
   );
 }
 
-function SplitText({ text, className = "", stagger = 0.02, delay = 0 }: { text: string; className?: string; stagger?: number; delay?: number }) {
-  return (
-    <span className={className} style={{ display: "inline-block" }}>
-      {text.split("").map((char, i) => (
-        <motion.span
-          key={i}
-          style={{ display: "inline-block", whiteSpace: char === " " ? "pre" : "normal" }}
-          initial={{ opacity: 0, y: 40, rotateX: -40 }}
-          animate={{ opacity: 1, y: 0, rotateX: 0 }}
-          transition={{ duration: 0.6, delay: delay + i * stagger, ease: [0.22, 1, 0.36, 1] }}
-        >
-          {char === " " ? " " : char}
-        </motion.span>
-      ))}
-    </span>
-  );
-}
-
 const SERVICES = [
   {
-    id: "ai-agents",
-    letter: "A",
-    tab: "AI AGENTS & WORKFLOWS",
-    heading: "INTELLIGENT AI AGENTS & WORKFLOW AUTOMATION",
-    sub: "AI Agents & Automation Solutions",
-    body: "We design, develop, deploy, and maintain intelligent AI agents that automate business operations, answer customer queries, access your company knowledge, and integrate with your existing software. Automate repetitive processes by connecting your applications, AI models, databases, and communication channels. From lead capture and CRM updates to invoice processing and employee onboarding — every step automated, every system connected.",
-    cta: "BUILD YOUR AI AGENT",
-    img: "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=700&h=480&fit=crop&auto=format",
-    alt: "Custom AI agents and workflows",
-    capabilities: ["Customer Support Agent", "Sales & Lead Qualification Agent", "Knowledge Base Agent", "Lead Capture & CRM Automation", "Invoice Processing Workflow", "Document Approval Workflow", "Multi-Agent Systems", "CRM / ERP Integration", "Admin Dashboard", "WhatsApp Notification System"],
-    tech: ["OPENAI GPT-4o", "ANTHROPIC CLAUDE", "GOOGLE GEMINI", "N8N / MAKE", "NEXT.JS / REACT", "NESTJS / FASTAPI", "POSTGRESQL", "PGVECTOR", "CLOUDFLARE R2", "DOCKER"],
-    packages: [
-      {
-        name: "Agent & Workflow Lite",
-        price: "₹34,999",
-        delivery: "2–3 Weeks",
-        features: ["1 AI Agent", "Web Chat Interface", "Up to 5 Automated Workflows", "Knowledge Base Setup", "Basic RAG", "Admin Dashboard", "1 Business Integration", "Email / WhatsApp Automation", "Deployment + Training", "30 Days Support"],
-      },
-      {
-        name: "Agent & Workflow Pro",
-        price: "₹89,999",
-        delivery: "4–6 Weeks",
-        features: ["Everything in Lite", "Multiple AI Agents", "Up to 15 Workflows", "Advanced RAG & Memory", "Multiple Integrations", "AI Document Processing", "Custom Workflows", "WhatsApp Integration", "Priority Support"],
-      },
-      {
-        name: "Enterprise System",
-        price: "₹2,49,999+",
-        delivery: "6–12 Weeks",
-        features: ["Everything in Pro", "Multi-Agent System", "Unlimited Workflows", "ERP Integration", "Custom UI/UX", "Enterprise Architecture", "SLA Support", "Discovery Workshop"],
-      },
+    id: "whatsapp-bot",
+    letter: "W",
+    tab: "WHATSAPP AI BOT",
+    heading: "AI WHATSAPP CUSTOMER ACQUISITION BOT",
+    sub: "Never Lose a Lead to a Slow Reply",
+    body: "An intelligent, conversational assistant integrated into your official Meta WhatsApp Business API. It understands natural language, answers complex product questions, provides digital menus via WhatsApp Flows, and collects customer contact details 24/7.",
+    cta: "BUILD YOUR BOT",
+    img: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=700&h=480&fit=crop&auto=format",
+    alt: "WhatsApp AI Bot",
+    tech: ["OPENAI GPT-4o", "META WHATSAPP API", "MAKE.COM", "FASTAPI", "PGVECTOR", "DOCKER"],
+    whoIsThisFor: [
+      "Real estate brokers losing massive sales to slow after-hours replies.",
+      "Retail shops missing customer inquiries during late nights and weekends.",
+      "Clinics and service businesses overwhelmed with repetitive booking questions.",
+      "D2C brands that want to instantly greet, qualify, and capture leads 24/7."
     ],
-    maintenance: "Basic ₹4,999 / Standard ₹7,999 / Premium ₹12,999 per month",
-  },
-  {
-    id: "ai-voice",
-    letter: "V",
-    tab: "AI VOICE AGENTS",
-    heading: "CONVERSATIONAL VOICE AI FOR YOUR BUSINESS",
-    sub: "AI Voice Agent Solutions",
-    body: "Automate inbound and outbound phone conversations using natural, human-like AI voices. Our voice agents answer calls, qualify leads, schedule appointments, provide customer support, and handle follow-ups — 24/7, without human intervention. Unlike traditional IVR systems, they understand natural language.",
-    cta: "BUILD YOUR VOICE AGENT",
-    img: "https://images.unsplash.com/photo-1589254065878-42c9da997008?w=700&h=480&fit=crop&auto=format",
-    alt: "AI voice agent",
-    capabilities: ["AI Receptionist", "Appointment Booking Agent", "Sales Calling Agent", "Lead Qualification Agent", "Customer Support Agent", "Follow-up Calling Agent", "Survey & Feedback Agent", "Order Confirmation Agent", "Inbound Call Handling", "CRM Integration"],
-    tech: ["ELEVENLABS", "OPENAI REALTIME API", "TWILIO", "EXOTEL", "PLIVO", "OPENAI", "CLAUDE", "GEMINI", "FASTAPI", "NESTJS", "N8N", "ZOHO / HUBSPOT / SALESFORCE"],
-    packages: [
-      {
-        name: "Voice Agent Lite",
-        price: "₹49,999",
-        delivery: "2–3 Weeks",
-        features: ["1 AI Voice Agent", "1 Phone Number Integration", "Inbound Call Handling", "Appointment Booking", "FAQ Responses", "Call Logging", "CRM Integration (1)", "Admin Dashboard", "Call Analytics", "Deployment + Training", "30 Days Support"],
-      },
-      {
-        name: "Voice Agent Pro",
-        price: "₹1,24,999",
-        delivery: "4–6 Weeks",
-        features: ["Everything in Lite", "Outbound Calling Campaign", "Multiple Phone Numbers", "Advanced CRM Sync", "WhatsApp Follow-up", "Multi-language Support", "Custom Analytics"],
-      },
-      {
-        name: "Enterprise",
-        price: "₹3,49,999+",
-        delivery: "6–10 Weeks",
-        features: ["Everything in Pro", "Multi-Agent Call Center", "Custom Voice Cloning", "ERP Integration", "Enterprise Security", "Dedicated Support"],
-      },
+    typicalResults: [
+      { stat: "24/7", label: "Instant Lead Response" },
+      { stat: "3x", label: "Higher Lead Capture Rate" },
+      { stat: "0", label: "Missed Customer Inquiries" },
+      { stat: "100%", label: "Automated Lead Qualification" }
     ],
-    maintenance: "Basic ₹7,999 / Standard ₹12,999 / Premium ₹19,999 per month",
+    deliverables: [
+      { title: "Intelligent Lead Capture", desc: "Instantly greets prospects, asks qualifying questions, and securely captures their name and phone number." },
+      { title: "Automated FAQ & Support", desc: "Answers complex product, pricing, and policy questions immediately using your custom business data." },
+      { title: "WhatsApp Flows Integration", desc: "Provides interactive digital menus, catalogs, and forms natively inside the WhatsApp interface." },
+      { title: "Human Handoff Protocol", desc: "Seamlessly routes high-value or complex conversations to human agents when necessary." }
+    ],
+    whyAutomation: {
+      problems: [
+        "Losing massive sales because staff takes too long to reply.",
+        "Missing hot leads completely during late nights and weekends.",
+        "Wasting hours manually answering the same basic pricing questions.",
+        "Potential customers getting frustrated by slow or ignored messages."
+      ],
+      solutions: [
+        "Instant, intelligent responses to 100% of incoming inquiries.",
+        "Automatic qualification and capture of contact details 24/7.",
+        "Eliminates repetitive manual chatting for your sales team.",
+        "Provides a seamless, modern, and immediate customer experience."
+      ]
+    }
   },
   {
     id: "whatsapp-crm",
-    letter: "W",
-    tab: "WHATSAPP & CRM",
-    heading: "AUTOMATE YOUR BUSINESS ON WHATSAPP",
-    sub: "WhatsApp & CRM Automation",
-    body: "Automate customer communication, lead management, follow-ups, sales pipelines, and appointment scheduling via WhatsApp Business API combined with CRM and AI. Auto replies, lead qualification, broadcast campaigns, and full pipeline management — all on the platform your customers already use.",
-    cta: "AUTOMATE WHATSAPP",
-    img: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=700&h=480&fit=crop&auto=format",
-    alt: "WhatsApp business automation",
-    capabilities: ["Auto Reply & Welcome Messages", "FAQ Automation", "Appointment Booking", "Order & Payment Updates", "Broadcast Campaigns", "Lead Capture & Qualification", "CRM Pipeline Management", "AI Response Suggestions", "Conversation Summaries", "Follow-up Recommendations"],
-    tech: ["WHATSAPP BUSINESS API", "META CLOUD API", "TWILIO", "GUPSHUP", "ZOHO / HUBSPOT / SALESFORCE / PIPEDRIVE / ODOO", "OPENAI / CLAUDE / GEMINI", "N8N", "FASTAPI / NESTJS", "POSTGRESQL"],
-    packages: [
-      {
-        name: "WhatsApp & CRM Lite",
-        price: "₹39,999",
-        delivery: "1–2 Weeks",
-        features: ["WhatsApp Business API Setup", "CRM Integration (1)", "Auto Replies", "Welcome Messages", "Lead Capture", "Pipeline Setup", "Basic AI Lead Qualification", "Admin Dashboard", "Deployment + Training", "30 Days Support"],
-      },
-      {
-        name: "Professional",
-        price: "₹99,999",
-        delivery: "2–4 Weeks",
-        features: ["Everything in Lite", "Multiple CRM Integrations", "AI Chatbot", "Broadcast Campaign System", "Custom Analytics", "Marketing Automation", "Multi-language Support"],
-      },
-      {
-        name: "Enterprise",
-        price: "₹2,99,999+",
-        delivery: "4–8 Weeks",
-        features: ["Everything in Pro", "Voice Agent Integration", "ERP Integration", "Customer Feedback System", "Advanced AI Insights", "SLA Support"],
-      },
+    letter: "C",
+    tab: "WHATSAPP-TO-CRM ENGINE",
+    heading: "WHATSAPP-TO-CRM REVENUE ENGINE",
+    sub: "Eliminate Manual Data Entry",
+    body: "A backend middleware automation workflow. The moment your WhatsApp bot captures a qualified lead, this engine instantly formats the data and injects it into your central database (Google Sheets, Zoho, HubSpot).",
+    cta: "AUTOMATE YOUR CRM",
+    img: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=700&h=480&fit=crop&auto=format",
+    alt: "CRM Dashboard Automation",
+    tech: ["N8N / MAKE.COM", "ZOHO CRM", "HUBSPOT", "GOOGLE SHEETS", "NODE.JS", "WEBHOOKS"],
+    whoIsThisFor: [
+      "Sales teams spending hours manually copying WhatsApp chats to Excel.",
+      "B2B companies and manufacturing firms with messy, decentralized lead data.",
+      "Revenue leaders lacking visibility into pipeline performance and lead status.",
+      "Growing agencies that need automated team alerts for hot leads."
     ],
-    maintenance: "Basic ₹4,999 / Standard ₹8,999 / Premium ₹14,999 per month",
+    typicalResults: [
+      { stat: "15 hrs", label: "Saved on Manual Entry / Week" },
+      { stat: "100%", label: "Lead Data Accuracy" },
+      { stat: "2x", label: "Faster Sales Follow-ups" },
+      { stat: "0", label: "Leads Slipping Through Cracks" }
+    ],
+    deliverables: [
+      { title: "Instant CRM Auto-Sync", desc: "Automatically formats and injects WhatsApp lead data directly into your central CRM or Google Sheets." },
+      { title: "Automated Team Alerts", desc: "Triggers instant notifications to your sales team via Slack or Email when a high-value lead is qualified." },
+      { title: "Follow-up Orchestration", desc: "Schedules and triggers automated follow-up messages days later to nurture leads." },
+      { title: "Pipeline Visibility Dashboards", desc: "Provides revenue leaders with real-time tracking of lead volume and conversion metrics." }
+    ],
+    whyAutomation: {
+      problems: [
+        "Sales teams wasting hours manually copying names and numbers to Excel.",
+        "Leads slipping through the cracks due to messy or lost data.",
+        "Zero visibility into pipeline health or follow-up status.",
+        "No structured system for triggering timely follow-ups."
+      ],
+      solutions: [
+        "Zero manual data entry required by your sales staff.",
+        "100% of leads safely stored and tracked in your central database.",
+        "Real-time visibility for managers into pipeline and performance.",
+        "Automated, structured follow-up sequences that drive revenue."
+      ]
+    }
   },
   {
-    id: "website",
-    letter: "W",
-    tab: "WEB, MOBILE & E-COMMERCE",
-    heading: "MODERN WEBSITES, APPS & ONLINE STORES",
-    sub: "Web & Mobile Development",
-    body: "Modern, secure, and highly scalable digital platforms. From corporate websites and full e-commerce platforms to cross-platform mobile applications. We build complete commerce ecosystems and business applications integrated with CRM, AI, and payment gateways — designed to maximize growth and engagement.",
-    cta: "BUILD YOUR PLATFORM",
-    img: "https://images.unsplash.com/photo-1547658719-da2b51169166?w=700&h=480&fit=crop&auto=format",
-    alt: "Web and mobile development",
-    capabilities: ["Custom UI/UX Design", "Corporate Websites", "E-Commerce Platforms", "Android & iOS Apps", "Cross-Platform (Flutter / React Native)", "Shopping Cart & Checkout", "Order & Inventory Management", "Payment Gateway Integration", "CMS Integration", "Analytics & SEO Optimized"],
-    tech: ["REACT / NEXT.JS / TAILWIND", "FLUTTER / REACT NATIVE", "NODE.JS / NESTJS / FASTAPI", "POSTGRESQL / SUPABASE / FIREBASE", "RAZORPAY / STRIPE / PAYU", "CLOUDFLARE R2 / AWS S3", "STRAPI / SANITY CMS", "VERCEL / CLOUDFLARE / AWS"],
-    packages: [
-      {
-        name: "Business Website",
-        price: "₹14,999",
-        delivery: "2–4 Weeks",
-        features: ["Custom UI/UX Design", "Up to 15 Pages", "CMS Integration", "Blog / News Section", "SEO-Ready", "Analytics Dashboard", "WhatsApp Integration", "Deployment + Support"],
-      },
-      {
-        name: "E-Commerce Store",
-        price: "₹49,999",
-        delivery: "3–6 Weeks",
-        features: ["Custom Responsive Design", "Unlimited Products", "Shopping Cart + Checkout", "Payment Gateway", "Order & Inventory Management", "Admin Dashboard", "Basic SEO + Analytics", "30 Days Support"],
-      },
-      {
-        name: "Mobile App (iOS + Android)",
-        price: "₹1,49,999",
-        delivery: "8–12 Weeks",
-        features: ["Cross-Platform App", "User Authentication", "Push Notifications", "Payment Gateway", "Analytics Dashboard", "CRM / API Integrations", "App Store Deployment", "Security Hardening", "30 Days Support"],
-      },
-      {
-        name: "Enterprise Platform",
-        price: "₹4,99,999+",
-        delivery: "3–6 Months",
-        features: ["Web + Mobile App", "Multi-location Inventory", "ERP Integration", "AI Recommendations", "Advanced Reporting", "Role-Based Access", "Security Audit", "60 Days Support"],
-      },
+    id: "smart-landing-page",
+    letter: "L",
+    tab: "SMART LANDING PAGE",
+    heading: "AI-POWERED SMART LANDING PAGE",
+    sub: "Capture 3x More Customer Inquiries",
+    body: "Replace your boring, static website with a high-speed, single-page site featuring a custom interactive AI tool embedded right at the top. It provides instant value to visitors in exchange for their contact details.",
+    cta: "UPGRADE YOUR SITE",
+    img: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=700&h=480&fit=crop&auto=format",
+    alt: "Interactive Smart Landing Page",
+    tech: ["NEXT.JS", "REACT", "TAILWIND CSS", "FRAMER MOTION", "VERCEL", "OPENAI API"],
+    whoIsThisFor: [
+      "Digital marketers tired of driving traffic to low-converting static sites.",
+      "Real estate firms wanting to offer an 'AI Property Valuer' to capture leads.",
+      "Gym owners and dietitians looking to offer an 'AI Diet Planner' magnet.",
+      "Edtech platforms and consultants needing interactive visitor engagement."
     ],
-    maintenance: "Basic ₹2,999 / Standard ₹9,999 / Premium ₹19,999 per month",
+    typicalResults: [
+      { stat: "3x", label: "Higher Conversion Rate" },
+      { stat: "50%", label: "Lower Bounce Rate" },
+      { stat: "100%", label: "Personalized Visitor Value" },
+      { stat: "< 1s", label: "Lightning Fast Page Load" }
+    ],
+    deliverables: [
+      { title: "Interactive AI Lead Magnet", desc: "A custom embedded AI tool (valuer, planner, calculator) that engages visitors immediately." },
+      { title: "High-Speed Architecture", desc: "Built with modern frameworks (Next.js) for instant load times and perfect technical SEO." },
+      { title: "Seamless Form Capture", desc: "Frictionless capture of names and phone numbers before unlocking the personalized AI analysis." },
+      { title: "Premium Visual Design", desc: "Sleek, conversion-optimized layouts with dynamic micro-animations to build instant trust." }
+    ],
+    whyAutomation: {
+      problems: [
+        "Traditional websites are boring walls of text that visitors ignore.",
+        "High bounce rates because the site offers no immediate interactive value.",
+        "Visitors leaving without ever filling out the standard 'Contact Us' form.",
+        "Wasting ad spend driving traffic to pages that don't convert."
+      ],
+      solutions: [
+        "Engages visitors immediately with a dynamic, personalized AI tool.",
+        "Provides upfront value, making visitors eager to share their contact info.",
+        "Dramatically increases the ROI of your ad spend through higher conversions.",
+        "Positions your brand as a modern, premium, tech-forward industry leader."
+      ]
+    }
   },
   {
-    id: "ai-video",
-    letter: "V",
-    tab: "AI VIDEO & UGC",
-    heading: "AI-POWERED MARKETING VIDEOS AT SCALE",
-    sub: "AI Video Generation & UGC Ads",
-    body: "High-quality marketing videos, social media content, product demonstrations, advertisements, and user-generated content (UGC) produced using AI. We combine AI video generation, AI avatars, AI voiceovers, motion graphics, scriptwriting, and editing — at significantly lower cost and faster turnaround than traditional video production.",
-    cta: "CREATE AI VIDEOS",
-    img: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=700&h=480&fit=crop&auto=format",
-    alt: "AI video generation",
-    capabilities: ["AI Video Generation", "AI Avatar Spokespersons", "AI Voiceover (Multi-language)", "Script Writing", "Motion Graphics", "Social Media Reels & Shorts", "YouTube Content", "Meta & Google Ad Creatives", "Product Demo Videos", "UGC Advertising Creatives"],
-    tech: ["RUNWAY / KLING AI / VEO / PIKA / LUMA AI", "HEYGEN / SYNTHESIA / TAVUS (AI AVATARS)", "ELEVENLABS / OPENAI VOICE / GOOGLE AI VOICE", "ADOBE PREMIERE PRO / AFTER EFFECTS", "CAPCUT PRO / DAVINCI RESOLVE", "CANVA PRO / ADOBE PHOTOSHOP / FIGMA", "CHATGPT / CLAUDE / GEMINI (SCRIPTS)"],
-    packages: [
-      {
-        name: "Starter Content",
-        price: "₹14,999/month",
-        delivery: "Weekly Deliverables",
-        features: ["8 AI Videos/Month", "AI Voiceover", "Script Writing", "Basic Editing", "Brand Logo Integration", "Background Music", "Vertical Format", "Monthly Content Plan", "1 Revision per Video"],
-      },
-      {
-        name: "Business Content",
-        price: "₹39,999/month",
-        delivery: "Weekly Deliverables",
-        features: ["20 AI Videos/Month", "AI Avatar", "Premium Voiceover", "Motion Graphics", "Captions & Subtitles", "Multi-format Export", "Platform Optimization", "Content Calendar", "3 Revisions per Video", "Monthly Performance Review"],
-      },
-      {
-        name: "Enterprise Content",
-        price: "₹99,999/month",
-        delivery: "Continuous Production",
-        features: ["High-Volume Video Production", "AI Avatars", "Multiple Languages", "Campaign Strategy", "Premium Motion Graphics", "Dedicated Creative Team", "Advanced Analytics", "Priority Delivery", "Unlimited Revisions (within scope)"],
-      },
-      {
-        name: "UGC Advertisement",
-        price: "₹7,500/video",
-        delivery: "2–4 Days",
-        features: ["Creative Research", "Script Writing", "AI UGC Creator", "AI Voice", "Product Demonstration", "Strong Hook + CTA", "Multiple Aspect Ratios", "Ad Optimization", "2 Revisions"],
-      },
+    id: "internal-brain",
+    letter: "I",
+    tab: "INTERNAL BRAIN KB",
+    heading: "THE 'INTERNAL BRAIN' KNOWLEDGE BASE",
+    sub: "Cut Internal Research Time to Seconds",
+    body: "A private, secure internal AI search interface using RAG. We index all your PDFs, manuals, and protocols into a secure database. Staff can chat with this private engine like a corporate ChatGPT trained only on your data.",
+    cta: "BUILD YOUR AI BRAIN",
+    img: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=700&h=480&fit=crop&auto=format",
+    alt: "Internal AI Knowledge Base",
+    tech: ["LANGCHAIN", "PGVECTOR", "OPENAI EMBEDDINGS", "NEXT.JS", "AWS S3", "FASTAPI"],
+    whoIsThisFor: [
+      "Mid-sized law firms needing rapid access to specific case files and precedents.",
+      "Customer support teams constantly searching through massive product spreadsheets.",
+      "Logistics and operational agencies managing complex compliance manuals.",
+      "Corporate HR departments answering the same repetitive policy questions."
     ],
-    maintenance: "",
+    typicalResults: [
+      { stat: "90%", label: "Faster Information Retrieval" },
+      { stat: "100%", label: "Accurate, Sourced Answers" },
+      { stat: "0 hrs", label: "Wasted Searching Folders" },
+      { stat: "24/7", label: "Instant Internal Support" }
+    ],
+    deliverables: [
+      { title: "Secure Data Indexing", desc: "We securely process and vectorize your private PDFs, docs, and spreadsheets into a closed database." },
+      { title: "Private AI Chat Interface", desc: "A sleek, internal chat portal where employees can ask questions in natural language." },
+      { title: "Source Citation System", desc: "Every AI answer includes exact page references and links to the original company document." },
+      { title: "Role-Based Access Control", desc: "Ensures sensitive documents are only searchable by authorized departments or management." }
+    ],
+    whyAutomation: {
+      problems: [
+        "Employees spending hours searching unorganized Google Drives for basic answers.",
+        "Customer support providing slow or incorrect answers due to buried information.",
+        "Onboarding new staff takes too long because knowledge is siloed.",
+        "Security risks from staff uploading private data to public AI tools."
+      ],
+      solutions: [
+        "Instant, accurate answers retrieved in seconds with exact source citations.",
+        "Empowers customer support to answer complex queries immediately.",
+        "Drastically speeds up employee onboarding and internal training.",
+        "100% secure, private infrastructure ensuring your data is never used for public training."
+      ]
+    }
   }
 ];
 
-export function ServicesPage({ onNavigate, initialServiceIndex = 0, scrollToDetail = false }: { onNavigate: (p: string) => void; initialServiceIndex?: number; scrollToDetail?: boolean }) {
-  const [active, setActive] = useState(initialServiceIndex);
-  const [checkoutService, setCheckoutService] = useState<{ name: string; price: string } | null>(null);
+export function ServicesPage({ onNavigate }: { onNavigate: (p: string) => void }) {
+  const [active, setActive] = useState(0);
   const srv = SERVICES[active];
 
-  useEffect(() => {
-    setActive(initialServiceIndex);
-    if (scrollToDetail) {
-      setTimeout(() => {
-        document.getElementById("service-detail")?.scrollIntoView({ behavior: "smooth" });
-      }, 120);
-    }
-  }, [initialServiceIndex, scrollToDetail]);
-
-  const heroRef = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
-
   return (
-    <div className="bg-black text-white selection:bg-white selection:text-black min-h-screen font-sans">
-      {/* Page hero */}
-      <section ref={heroRef} className="relative pt-16 bg-[#0a0a0a] overflow-hidden">
-        {/* Animated Background Cover */}
-        <motion.div style={{ y }} className="absolute inset-0 z-0 pointer-events-none -top-[10%] h-[120%]">
-           <motion.img 
-             src="/images/services_hero_bg.png" 
-             className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-luminosity"
-             initial={{ scale: 1.1, opacity: 0 }}
-             animate={{ scale: 1, opacity: 0.4 }}
-             transition={{ duration: 1.5, ease: "easeOut" }}
-           />
-           <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black" />
-           <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)", backgroundSize: "64px 64px", backgroundPosition: "center top" }} />
-        </motion.div>
-        
-        <div className="relative z-10 w-full min-h-[90vh] flex flex-col justify-center py-20 overflow-hidden">
-          {/* Main typographic composition */}
-          <div className="max-w-[1400px] mx-auto px-6 w-full relative z-20 pointer-events-none">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
-              <div className="inline-flex items-center gap-3 border border-white/20 bg-black/50 px-4 py-2 mb-8 backdrop-blur-md">
-                <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                <span className="text-white/80 text-[10px] font-bold font-mono tracking-[0.25em] uppercase">
-                  Service Matrix
-                </span>
-              </div>
-            </motion.div>
-            
-            <h1 className="text-white font-heading font-black leading-[0.85] uppercase tracking-tighter" style={{ fontSize: "clamp(3.5rem, 10vw, 9rem)" }}>
-              <SplitText text="AI SYSTEMS &" delay={0.1} stagger={0.04} /><br />
-              <SplitText text="AUTOMATION" delay={0.3} stagger={0.04} className="text-white/90" /><br />
-              <SplitText text="THAT SCALE" delay={0.5} stagger={0.04} />
-            </h1>
-          </div>
-
-          {/* Floating Image / Data Core */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[85%] md:w-[60%] lg:w-[45%] max-w-[800px] z-10 pointer-events-auto mix-blend-lighten hidden md:block">
-             <TiltCard className="translate-x-[15%] lg:translate-x-[10%] opacity-80 hover:opacity-100 transition-opacity duration-700">
-                <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-transparent border border-white/10 group">
-                  <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=700&h=500&fit=crop&auto=format')] bg-cover bg-center mix-blend-luminosity opacity-40 group-hover:scale-105 transition-transform duration-1000 ease-out" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent" />
-                  
-                  {/* Floating Brutalist Badge */}
-                  <motion.div
-                    className="absolute bottom-10 left-[-20%] bg-black/80 border border-white/20 p-5 flex flex-col gap-2 shadow-2xl backdrop-blur-xl w-[320px]"
-                    initial={{ x: -40, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 1.2, duration: 0.8, ease: "easeOut" }}
-                  >
-                    <div className="flex items-center gap-3 mb-2 border-b border-white/10 pb-3">
-                      <div className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-40"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
-                      </div>
-                      <p className="text-white/60 font-mono text-[10px] font-bold uppercase tracking-widest">Live: Core Systems</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-white/40 text-[9px] uppercase font-mono tracking-wider">Active Deployments</p>
-                        <p className="text-white font-heading font-black text-2xl">142<span className="text-white/40 text-sm">.0</span></p>
-                      </div>
-                      <div>
-                        <p className="text-white/40 text-[9px] uppercase font-mono tracking-wider">Avg Latency</p>
-                        <p className="text-white font-heading font-black text-2xl">12<span className="text-white/40 text-sm">ms</span></p>
-                      </div>
-                    </div>
-                    <p className="text-white/70 font-mono text-[9px] uppercase tracking-widest border-t border-white/10 pt-3 mt-1 text-center">11 CORE SERVICES • VERIFIED</p>
-                  </motion.div>
-                </div>
-             </TiltCard>
-          </div>
-
-          {/* Subtext and CTA */}
-          <div className="max-w-[1400px] mx-auto px-6 w-full relative z-30 mt-12 grid md:grid-cols-2 gap-12 pointer-events-auto">
-             <div>
-                <motion.p 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8, duration: 0.8 }}
-                  className="text-white/60 text-base md:text-lg leading-relaxed max-w-md font-sans border-l-2 border-white/20 pl-6 bg-black/40 backdrop-blur-md p-4 rounded-r-lg"
-                >
-                  We build AI agents, voice agents, workflow automation, custom software, e-commerce platforms, digital marketing, and AI video — everything your business needs to grow.
-                </motion.p>
-             </div>
-             <div className="flex items-end justify-start md:justify-end mt-6 md:mt-0">
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 1, duration: 0.6 }}>
-                  <MagneticButton
-                    onClick={() => onNavigate("contact")}
-                    className="bg-white text-black font-heading font-black text-sm tracking-widest uppercase px-10 py-5 flex items-center gap-4 transition-colors group shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(255,255,255,0.3)]"
-                  >
-                    DEPLOY YOUR SYSTEM <ArrowRight size={16} className="group-hover:translate-x-1.5 transition-transform" />
-                  </MagneticButton>
-                </motion.div>
-             </div>
-          </div>
-        </div>
-
-        {/* Service count strip */}
-        <div className="border-t border-white/10 relative z-10 bg-black/40 backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto px-6 py-5 flex flex-wrap gap-3">
-            {SERVICES.map((s) => (
-              <span key={s.id} className="border border-white/10 text-white/40 text-xs px-3 py-1.5 font-mono uppercase tracking-wider">{s.tab}</span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── SERVICES OVERVIEW GRID ── */}
-      <section className="bg-black py-16 border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6">
-          <AnimReveal className="mb-12">
-            <p className="text-white/50 text-xs font-mono tracking-[0.25em] uppercase mb-3">Our Services</p>
-            <h2 className="text-white font-heading font-black leading-none" style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}>
-              <SplitText text="AI-FIRST SERVICES." delay={0.1} /><br />
-              <SplitText text="ONE ENGINEERING PARTNER." delay={0.3} className="text-white/70" />
-            </h2>
+    <div className="bg-black text-white selection:bg-white selection:text-black min-h-screen pt-24">
+      {/* ── HERO ── */}
+      <section className="py-20 border-b border-white/10 relative overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-white opacity-[0.02] blur-[100px] rounded-full pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
+          <AnimReveal>
+            <div className="inline-flex items-center gap-3 px-4 py-2 border border-white/10 rounded-full mb-8 bg-white/5">
+              <span className="w-2 h-2 rounded-full bg-[#60c8ff] animate-pulse" />
+              <span className="text-xs font-mono uppercase tracking-widest text-white/70">Our Expertise</span>
+            </div>
           </AnimReveal>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-px bg-white/10 border border-white/10">
-            {SERVICES.map((s, i) => (
-              <TiltCard key={s.id} className="bg-black">
-                <motion.button
-                  onClick={() => {
-                    setActive(i);
-                    document.getElementById("service-detail")?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className={`w-full h-full p-5 text-left group transition-all duration-300 ${active === i ? "bg-white/10 border-white/20" : "bg-black hover:bg-white/5"}`}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: i * 0.04 }}
-                >
-                  <p
-                    className={`font-heading font-black text-xs leading-tight uppercase tracking-wide transition-colors group-hover:text-white ${active === i ? "text-white" : "text-white/50"}`}
-                  >
-                    {s.tab}
-                  </p>
-                  {active === i && (
-                    <motion.div layoutId="activeBarServices" className="mt-2 w-6 h-0.5 bg-white" />
-                  )}
-                </motion.button>
-              </TiltCard>
-            ))}
-          </div>
+          <AnimReveal delay={0.1}>
+            <h1 className="text-5xl md:text-7xl font-heading font-black tracking-tight leading-[0.95] mb-8 uppercase">
+              Core Automation<br /><span className="text-white/40">Offerings</span>
+            </h1>
+          </AnimReveal>
+          <AnimReveal delay={0.2}>
+            <p className="text-lg text-white/50 max-w-2xl mx-auto font-sans leading-relaxed">
+              We design, develop, deploy, and maintain intelligent AI agents, smart landing pages, and CRM integrations tailored for the Indian market to eliminate manual tasks and drive revenue.
+            </p>
+          </AnimReveal>
         </div>
       </section>
 
       {/* ── SERVICE DETAIL ── */}
-      <section id="service-detail" className="bg-[#050505]">
+      <section className="bg-[#050505]">
         <div className="max-w-7xl mx-auto px-6 py-16 lg:py-24">
           {/* Tab strip */}
-          <div className="flex overflow-x-auto gap-1 mb-12 pb-2 border-b border-white/10 scrollbar-hide">
+          <div className="flex overflow-x-auto gap-2 mb-16 pb-4 border-b border-white/10 scrollbar-hide">
             {SERVICES.map((s, i) => (
               <motion.button
                 key={s.id}
                 onClick={() => setActive(i)}
-                className={`shrink-0 px-4 py-2 text-xs font-mono tracking-widest uppercase transition-all whitespace-nowrap ${
-                  active === i ? "bg-white text-black font-bold" : "text-white/40 hover:text-white border border-white/10 hover:border-white/30"
+                className={`shrink-0 px-5 py-3 text-sm font-mono tracking-widest uppercase transition-all whitespace-nowrap rounded-md ${
+                  active === i ? "bg-white text-black font-bold" : "text-white/40 hover:text-white border border-white/10 hover:border-white/30 hover:bg-white/5"
                 }`}
-                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               >
                 {s.tab}
               </motion.button>
             ))}
           </div>
 
-          {/* Detail content */}
           <AnimatePresence mode="wait">
             <motion.div
               key={active}
@@ -413,193 +250,148 @@ export function ServicesPage({ onNavigate, initialServiceIndex = 0, scrollToDeta
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.5 }}
             >
-              {/* Top: heading + description + image */}
-              <div className="grid lg:grid-cols-2 gap-16 items-start relative mb-16">
-                <div
-                  className="absolute top-0 right-0 text-white/[0.02] font-heading font-black select-none pointer-events-none"
-                  style={{ fontSize: "clamp(8rem, 18vw, 16rem)", lineHeight: 0.85 }}
-                >
-                  {srv.letter}
-                </div>
-
-                <div className="relative z-10">
-                  <p className="text-white/50 font-mono text-xs font-bold tracking-[0.25em] uppercase mb-3">{srv.sub}</p>
-                  <h2 className="text-white font-heading font-black leading-[0.95] mb-6" style={{ fontSize: "clamp(2rem, 4.5vw, 3.6rem)" }}>
+              {/* Header block */}
+              <div className="grid lg:grid-cols-2 gap-16 items-center mb-24">
+                <div>
+                  <p className="text-[#60c8ff] font-mono text-xs font-bold tracking-[0.25em] uppercase mb-4">{srv.sub}</p>
+                  <h2 className="text-white font-heading font-black leading-[1] mb-6 text-4xl md:text-5xl lg:text-6xl uppercase">
                     {srv.heading}
                   </h2>
-                  <p className="text-white/60 text-base leading-relaxed mb-8 font-sans">{srv.body}</p>
-
-                  <div className="grid grid-cols-2 gap-2 mb-8">
-                    {srv.capabilities.map((c) => (
-                      <div key={c} className="flex items-center gap-2">
-                        <div className="w-1 h-1 bg-white/60 rounded-full shrink-0" />
-                        <span className="text-white/50 text-xs font-mono uppercase tracking-wider font-semibold">{c}</span>
-                      </div>
-                    ))}
-                  </div>
-
+                  <p className="text-white/60 text-lg leading-relaxed mb-8 font-sans">{srv.body}</p>
                   <MagneticButton
                     onClick={() => onNavigate("contact")}
-                    className="bg-white text-black font-heading font-black text-xs tracking-widest uppercase px-7 py-3.5 flex items-center gap-3 transition-colors group"
+                    className="bg-white text-black font-heading font-black text-sm tracking-widest uppercase px-8 py-4 flex items-center gap-3 transition-colors group"
                   >
-                    {srv.cta} <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
+                    {srv.cta} <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </MagneticButton>
                 </div>
-
-                <div className="relative">
+                <div>
                   <TiltCard>
-                    <motion.div
-                      className="rounded-xl overflow-hidden h-[360px] bg-[#111] border border-white/10"
-                      transition={{ duration: 0.4 }}
-                    >
-                      <img
-                        src={srv.img}
-                        alt={srv.alt}
-                        className="w-full h-full object-cover opacity-60 transition-transform duration-700 hover:scale-105 mix-blend-luminosity hover:mix-blend-normal"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-tl from-white/5 to-transparent pointer-events-none" />
-                    </motion.div>
+                    <div className="rounded-xl overflow-hidden h-[400px] border border-white/10 relative">
+                      <img src={srv.img} alt={srv.alt} className="w-full h-full object-cover opacity-60" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
+                    </div>
                   </TiltCard>
                 </div>
               </div>
 
-              {/* Pricing packages */}
-              <div className="mb-4">
-                <p className="text-white/50 text-xs font-mono font-bold tracking-[0.25em] uppercase mb-6">Packages & Pricing</p>
-                <div className={`grid gap-4 ${srv.packages.length <= 2 ? "md:grid-cols-2" : srv.packages.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2 lg:grid-cols-4"}`}>
-                  {srv.packages.map((pkg, pi) => (
-                    <TiltCard key={pkg.name}>
-                      <motion.div
-                        className="border border-white/10 bg-[#0a0a0a] hover:border-white/30 hover:bg-white/5 transition-all p-6 flex flex-col h-full rounded-lg"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: pi * 0.08 }}
-                      >
-                        <p className="text-white/60 text-xs font-mono font-bold tracking-widest uppercase mb-2">{pkg.name}</p>
-                        <p className="text-white font-heading font-black mb-1" style={{ fontSize: "clamp(1.4rem, 2.5vw, 2rem)" }}>{pkg.price}</p>
-                        <p className="text-white/40 text-xs font-mono uppercase tracking-wide mb-4">{pkg.delivery}</p>
-                        <ul className="space-y-1.5 flex-1">
-                          {pkg.features.map((f) => (
-                            <li key={f} className="flex items-start gap-2">
-                              <Check size={11} className="text-white/50 mt-0.5 shrink-0" />
-                              <span className="text-white/60 text-xs leading-snug font-sans">{f}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        <MagneticButton
-                          onClick={() => setCheckoutService({ name: `${srv.sub} - ${pkg.name}`, price: pkg.price })}
-                          className="mt-5 border border-white/20 hover:bg-white text-white hover:text-black font-heading font-black text-xs tracking-widest uppercase px-4 py-2.5 transition-all flex items-center gap-2 justify-center group w-full"
-                        >
-                          Get Started <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
-                        </MagneticButton>
-                      </motion.div>
-                    </TiltCard>
+              {/* AUTOMALY STYLE SECTION 1: Who Is This For? */}
+              <div className="mb-24">
+                <h3 className="text-3xl font-heading font-bold text-center mb-10">Who Is This <span className="text-[#60c8ff]">For?</span></h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {srv.whoIsThisFor.map((item, i) => (
+                    <div key={i} className="flex items-start gap-4 p-6 border border-white/10 rounded-lg bg-white/[0.02]">
+                      <CircleCheck className="text-[#60c8ff] shrink-0 mt-0.5" size={20} />
+                      <p className="text-white/70 text-sm leading-relaxed">{item}</p>
+                    </div>
                   ))}
                 </div>
-                {srv.maintenance && (
-                  <p className="text-white/30 text-xs mt-4 font-mono">
-                    Monthly Maintenance: {srv.maintenance}
-                  </p>
-                )}
               </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </section>
 
-      {/* ── TECH STACK ── */}
-      <section className="bg-black py-20 border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6">
-          <AnimReveal className="mb-10">
-            <p className="text-white/50 text-xs font-mono tracking-[0.25em] uppercase mb-3">Technology</p>
-            <h2 className="text-white font-heading font-black leading-[0.95]" style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}>
-              TOOLS WE USE FOR<br />
-              <span className="text-white/70">{srv.tab}</span>
-            </h2>
-          </AnimReveal>
+              {/* AUTOMALY STYLE SECTION 2: Typical Results */}
+              <div className="mb-24 py-16 border-y border-white/10 bg-white/[0.01]">
+                <h3 className="text-3xl font-heading font-bold text-center mb-12">Typical <span className="text-[#60c8ff]">Results</span></h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto px-6">
+                  {srv.typicalResults.map((res, i) => (
+                    <div key={i} className="text-center p-6 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors">
+                      <div className="text-4xl font-heading font-black text-white mb-3">{res.stat}</div>
+                      <div className="text-xs text-white/50 uppercase tracking-widest font-mono">{res.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={active + "tech"}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-px bg-white/10 border border-white/10"
-            >
-              {srv.tech.map((t, ti) => (
-                <motion.div
-                  key={t}
-                  className="bg-black px-6 py-4 flex items-center gap-3 group hover:bg-white/5 transition-colors cursor-default"
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: ti * 0.04 }}
-                >
-                  <div className="w-1.5 h-1.5 bg-white/20 rounded-full shrink-0 group-hover:scale-150 group-hover:bg-white transition-all" />
-                  <span className="text-white/60 group-hover:text-white text-xs font-mono uppercase tracking-widest transition-colors">
-                    {t}
-                  </span>
-                </motion.div>
-              ))}
+              {/* AUTOMALY STYLE SECTION 3: What We Deliver */}
+              <div className="mb-24">
+                <h3 className="text-3xl font-heading font-bold text-center mb-12">What We <span className="text-[#60c8ff]">Deliver</span></h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {srv.deliverables.map((del, i) => (
+                    <div key={i} className="p-8 border border-white/10 rounded-xl bg-white/[0.02]">
+                      <div className="w-10 h-10 rounded-lg bg-[#60c8ff]/10 flex items-center justify-center mb-5 border border-[#60c8ff]/20">
+                        <Bot size={20} className="text-[#60c8ff]" />
+                      </div>
+                      <h4 className="text-lg font-bold mb-3">{del.title}</h4>
+                      <p className="text-white/50 text-sm leading-relaxed">{del.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* AUTOMALY STYLE SECTION 4: Why Need Automation */}
+              <div className="mb-24">
+                <h3 className="text-3xl font-heading font-bold text-center mb-12">Why You Need <span className="text-[#60c8ff]">Automation</span></h3>
+                <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                  {/* Left: Problems */}
+                  <div className="p-8 border border-red-500/20 bg-red-500/[0.02] rounded-xl">
+                    <div className="flex items-center gap-3 mb-6">
+                      <TriangleAlert className="text-red-400" size={24} />
+                      <h4 className="text-lg font-bold text-white">Common Problems</h4>
+                    </div>
+                    <ul className="space-y-4">
+                      {srv.whyAutomation.problems.map((prob, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-500/50 mt-2 shrink-0" />
+                          <span className="text-white/60 text-sm">{prob}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Right: Solutions */}
+                  <div className="p-8 border border-[#60c8ff]/20 bg-[#60c8ff]/[0.02] rounded-xl">
+                    <div className="flex items-center gap-3 mb-6">
+                      <CircleCheck className="text-[#60c8ff]" size={24} />
+                      <h4 className="text-lg font-bold text-white">With Automation</h4>
+                    </div>
+                    <ul className="space-y-4">
+                      {srv.whyAutomation.solutions.map((sol, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <Check className="text-[#60c8ff] shrink-0 mt-0.5" size={16} />
+                          <span className="text-white/80 text-sm">{sol}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── TECH STACK ── */}
+              <div className="mt-16 pt-16 border-t border-white/10">
+                <p className="text-white/50 text-xs font-mono tracking-[0.25em] uppercase mb-6 text-center">Tech Stack</p>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {srv.tech.map((t, ti) => (
+                    <div key={t} className="bg-white/5 border border-white/10 px-4 py-2 rounded-full text-xs font-mono text-white/60 hover:text-white hover:border-white/30 transition-all">
+                      {t}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </motion.div>
           </AnimatePresence>
         </div>
       </section>
 
       {/* ── CTA SECTION ── */}
-      <section className="bg-[#050505] py-20 overflow-hidden relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/[0.03] to-transparent pointer-events-none" />
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <AnimReveal>
-              <p className="text-white/50 font-mono text-xs font-bold tracking-[0.25em] uppercase mb-4">Ready to Start?</p>
-              <h2 className="text-white font-heading font-black leading-[0.95] mb-6" style={{ fontSize: "clamp(1.8rem, 3.5vw, 3rem)" }}>
-                LET'S BUILD SOMETHING<br />
-                REMARKABLE TOGETHER
-              </h2>
-              <p className="text-white/50 text-sm leading-relaxed mb-8 font-sans">
-                Whether you need a custom AI agent, a complete e-commerce platform, workflow automation, or a digital marketing strategy — we have the expertise, the technology, and the team to deliver it.
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <MagneticButton
-                  onClick={() => onNavigate("contact")}
-                  className="bg-white text-black font-heading font-black text-xs tracking-widest uppercase px-8 py-4 flex items-center gap-3 transition-colors group"
-                >
-                  GET A FREE CONSULTATION <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </MagneticButton>
-              </div>
-            </AnimReveal>
-
-            <AnimReveal delay={0.2}>
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { stat: "11", label: "Services Offered" },
-                  { stat: "AI-First", label: "Engineering Approach" },
-                  { stat: "30 Days", label: "Post-Delivery Support" },
-                  { stat: "₹2,999", label: "Starting Price" },
-                ].map((item) => (
-                  <TiltCard key={item.label}>
-                     <div className="border border-white/10 bg-[#0a0a0a] p-5 h-full rounded-md hover:bg-white/5 transition-colors">
-                       <p className="text-white font-heading font-black text-2xl mb-1">{item.stat}</p>
-                       <p className="text-white/40 text-xs font-mono uppercase tracking-wider font-semibold">{item.label}</p>
-                     </div>
-                  </TiltCard>
-                ))}
-              </div>
-            </AnimReveal>
-          </div>
+      <section className="bg-black py-24 overflow-hidden relative border-t border-white/10">
+        <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
+          <AnimReveal>
+            <p className="text-[#60c8ff] font-mono text-xs font-bold tracking-[0.25em] uppercase mb-4">Ready to Automate?</p>
+            <h2 className="text-white font-heading font-black leading-[1] mb-8" style={{ fontSize: "clamp(2rem, 4vw, 3.5rem)" }}>
+              BOOK A FREE DISCOVERY CALL
+            </h2>
+            <p className="text-white/50 text-lg mb-10 max-w-2xl mx-auto">
+              Let's find your biggest business bottleneck and build an automated system to eliminate it.
+            </p>
+            <MagneticButton
+              onClick={() => window.open("https://cal.id/kalpvruksh-ai", "_blank")}
+              className="bg-white text-black font-heading font-black text-sm tracking-widest uppercase px-10 py-5 mx-auto flex items-center gap-3 transition-colors group rounded-md hover:bg-white/90"
+            >
+              SCHEDULE NOW <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </MagneticButton>
+          </AnimReveal>
         </div>
       </section>
-
-      {/* Checkout Modal */}
-      {checkoutService && (
-        <CheckoutModal
-          isOpen={true}
-          onClose={() => setCheckoutService(null)}
-          planName={checkoutService.name}
-          price={checkoutService.price}
-        />
-      )}
     </div>
   );
 }

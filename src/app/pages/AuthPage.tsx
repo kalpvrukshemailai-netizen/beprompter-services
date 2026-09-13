@@ -123,6 +123,7 @@ function AuthForm({ mode, onSuccess, onVerificationNeeded }: {
         email: form.email,
         password: form.password,
         options: {
+          emailRedirectTo: "https://beprompter.services",
           data: {
             role: "client" as UserRole,
             full_name: form.fullName,

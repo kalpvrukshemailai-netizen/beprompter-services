@@ -1,46 +1,129 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "motion/react";
-import { ChevronDown, ChevronLeft, User } from "lucide-react";
+import { ChevronDown, ChevronLeft, User, Bot, Mic, Workflow, MessageSquare, Globe, Home, Heart, UtensilsCrossed, Factory, GraduationCap, Landmark, Scale, ShoppingBag, Megaphone, TrendingUp, Headphones, BookOpen, FileText, Mail, Users, Handshake, Database, Monitor } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 import beLogo from "@/imports/BE-logo.jpeg";
 
-const SERVICE_SUB = [
-  { label: "AI Agents",         idx: 0 },
-  { label: "AI Voice Agents",   idx: 1 },
-  { label: "Workflow Auto",     idx: 2 },
-  { label: "WhatsApp & CRM",    idx: 4 },
-  { label: "Websites",          idx: 5 },
+/* ══════════════════════════════════════════════════════════
+   NAV CONFIGURATION — Automaly-style sections & sub-items
+   ══════════════════════════════════════════════════════════ */
+
+interface SubItem {
+  label: string;
+  page: string;
+  icon?: React.ComponentType<{ size?: number; className?: string }>;
+}
+
+interface NavSection {
+  label: string;
+  page: string;               // default click target
+  highlight?: boolean;         // visually accent this item (e.g. Trust)
+  sub?: SubItem[];
+  mega?: {                    // two-column mega-menu (Use Cases)
+    columns: {
+      heading: string;
+      items: SubItem[];
+    }[];
+    footerLabel?: string;
+    footerPage?: string;
+  };
+}
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    label: "Services",
+    page: "services",
+    sub: [
+      { label: "AI WhatsApp Bot",      page: "services:0", icon: MessageSquare },
+      { label: "WhatsApp-to-CRM Engine", page: "services:1", icon: Database },
+      { label: "Smart Landing Pages",  page: "services:2", icon: Monitor },
+      { label: "Internal Brain AI",    page: "services:3", icon: Bot },
+    ],
+  },
+  {
+    label: "Use Cases",
+    page: "industries",
+    mega: {
+      columns: [
+        {
+          heading: "By Industry",
+          items: [
+            { label: "Real Estate",    page: "real-estate",  icon: Home },
+            { label: "Healthcare",     page: "industries",   icon: Heart },
+            { label: "Restaurants",    page: "industries",   icon: UtensilsCrossed },
+            { label: "Manufacturing",  page: "industries",   icon: Factory },
+            { label: "Education",      page: "industries",   icon: GraduationCap },
+            { label: "Legal",          page: "industries",   icon: Scale },
+          ],
+        },
+        {
+          heading: "By Function",
+          items: [
+            { label: "Sales & Marketing",  page: "industries", icon: TrendingUp },
+            { label: "Operations",         page: "industries", icon: Workflow },
+            { label: "Customer Support",   page: "industries", icon: Headphones },
+          ],
+        },
+      ],
+      footerLabel: "View all use cases",
+      footerPage: "industries",
+    },
+  },
+  {
+    label: "Trust",
+    page: "trust",
+    highlight: true,
+  },
+  {
+    label: "Pricing",
+    page: "home:pricing",
+  },
+  {
+    label: "Resources",
+    page: "insights",
+    sub: [
+      { label: "Blog / Insights",   page: "insights",     icon: BookOpen },
+      { label: "Case Studies",      page: "case-studies",  icon: FileText },
+      { label: "Contact",           page: "contact",       icon: Mail },
+    ],
+  },
+  {
+    label: "Company",
+    page: "about",
+    sub: [
+      { label: "About Us",   page: "about",           icon: Users },
+      { label: "Partners",   page: "agency-partners",  icon: Handshake },
+    ],
+  },
 ];
 
-const NAV_ITEMS = [
-  {
-    label: "Services", page: "services",
-    sub: SERVICE_SUB.map((s) => `${s.label}|services:${s.idx}`),
-  },
-  {
-    label: "Industries", page: "real-estate",
-    sub: ["Real Estate|real-estate"],
-  },
-  { label: "How It Works", page: "home:how-it-works" },
-  { label: "About", page: "about" },
-];
+/* Flatten all navigable sub-items for mobile */
+const ALL_MOBILE_ITEMS: { label: string; page: string }[] = [];
+NAV_SECTIONS.forEach((s) => {
+  if (s.mega) {
+    s.mega.columns.forEach((col) => col.items.forEach((it) => ALL_MOBILE_ITEMS.push(it)));
+  } else if (s.sub) {
+    s.sub.forEach((it) => ALL_MOBILE_ITEMS.push(it));
+  }
+});
 
 const VISIBLE = 7;
 
-/* ─── Regular arc item (main nav) ─── */
+/* ─── Regular arc item (main nav — mobile) ─── */
 function ArcItem({ item, i, isActive, vp, onGo, onOpenSub }: {
-  item: { label: string; page: string; sub?: string[]; x: number; y: number };
+  item: { label: string; page: string; hasSub?: boolean; highlight?: boolean; x: number; y: number };
   i: number; isActive: boolean;
   vp: { w: number; h: number };
   onGo: (page: string) => void;
   onOpenSub?: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const isHighlight = item.highlight;
   return (
     <div style={{ position: "absolute", left: item.x, top: item.y, transform: "translate(-50%, -50%)" }}>
       <motion.button
-        onClick={() => item.sub && onOpenSub ? onOpenSub() : onGo(item.page)}
+        onClick={() => item.hasSub && onOpenSub ? onOpenSub() : onGo(item.page)}
         className="flex flex-col items-center"
         initial={{ x: Math.max(60, vp.w - item.x + 20), opacity: 0, scale: 0.5 }}
         animate={{ x: 0, opacity: 1, scale: 1 }}
@@ -50,17 +133,28 @@ function ArcItem({ item, i, isActive, vp, onGo, onOpenSub }: {
         onHoverStart={() => setHovered(true)} onHoverEnd={() => setHovered(false)}
       >
         <motion.div className="rounded-full border mb-2"
-          animate={{ width: isActive || hovered ? 16 : 10, height: isActive || hovered ? 16 : 10, backgroundColor: isActive ? "#fff" : hovered ? "#60c8ff" : "rgba(0,0,0,0)", borderColor: isActive ? "#fff" : hovered ? "#60c8ff" : "rgba(255,255,255,0.45)", boxShadow: hovered ? "0 0 14px 5px rgba(60,180,255,0.65)" : "none" }}
+          animate={{
+            width: isActive || hovered ? 16 : isHighlight ? 12 : 10,
+            height: isActive || hovered ? 16 : isHighlight ? 12 : 10,
+            backgroundColor: isActive ? "#fff" : hovered ? "#60c8ff" : isHighlight ? "rgba(96,200,255,0.3)" : "rgba(0,0,0,0)",
+            borderColor: isActive ? "#fff" : hovered || isHighlight ? "#60c8ff" : "rgba(255,255,255,0.45)",
+            boxShadow: hovered ? "0 0 14px 5px rgba(60,180,255,0.65)" : isHighlight ? "0 0 12px 3px rgba(96,200,255,0.35)" : "none",
+          }}
           transition={{ duration: 0.2 }}
         />
         <motion.span animate={{ color: hovered ? "rgba(140,220,255,0.95)" : "rgba(255,255,255,0.25)" }} transition={{ duration: 0.2 }}
           style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: "0.18em", marginBottom: 3 }}>
           {String(i + 1).padStart(2, "0")}
         </motion.span>
-        <motion.span animate={{ color: isActive ? "#fff" : hovered ? "#a8e4ff" : "rgba(255,255,255,0.55)" }} transition={{ duration: 0.2 }}
-          style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: "clamp(0.95rem, 4.2vw, 1.3rem)", letterSpacing: "0.07em", textTransform: "uppercase", maxWidth: 104, textAlign: "center", lineHeight: 1.15, textShadow: hovered ? "0 0 22px rgba(60,180,255,0.90), 0 0 8px rgba(120,220,255,0.60)" : "none" }}>
+        <motion.span
+          animate={{ color: isActive ? "#fff" : isHighlight ? "#60c8ff" : hovered ? "#a8e4ff" : "rgba(255,255,255,0.55)" }}
+          transition={{ duration: 0.2 }}
+          style={{
+            fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: "clamp(0.95rem, 4.2vw, 1.3rem)", letterSpacing: "0.07em", textTransform: "uppercase", maxWidth: 104, textAlign: "center", lineHeight: 1.15,
+            textShadow: hovered ? "0 0 22px rgba(60,180,255,0.90), 0 0 8px rgba(120,220,255,0.60)" : isHighlight ? "0 0 18px rgba(96,200,255,0.4)" : "none",
+          }}>
           {item.label}
-          {item.sub && <ChevronDown size={12} style={{ display: "inline", marginLeft: 4, opacity: 0.6 }} />}
+          {item.hasSub && <ChevronDown size={12} style={{ display: "inline", marginLeft: 4, opacity: 0.6 }} />}
         </motion.span>
       </motion.button>
     </div>
@@ -74,7 +168,6 @@ function WheelItem({ x, y, label, page, slotIdx, wheelDir, onGo }: {
   onGo: (page: string) => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  // Edge slots slightly faded — depth illusion of a curved drum
   const opacity = slotIdx === 0 || slotIdx === VISIBLE - 1 ? 0.4
     : slotIdx === 1 || slotIdx === VISIBLE - 2 ? 0.65 : 1;
 
@@ -117,6 +210,100 @@ function WheelItem({ x, y, label, page, slotIdx, wheelDir, onGo }: {
   );
 }
 
+/* ═══════════════════════════════════════════
+   Desktop dropdown panel (simple sub-items)
+   ═══════════════════════════════════════════ */
+function DropdownPanel({ items, currentPage, onGo }: {
+  items: SubItem[];
+  currentPage: string;
+  onGo: (page: string) => void;
+}) {
+  return (
+    <motion.div
+      className="absolute top-full left-0 pt-1"
+      style={{ minWidth: 220, zIndex: 60 }}
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.18 }}
+    >
+      <div className="border border-white/10 py-1.5" style={{ backgroundColor: "#0a0a0a", backdropFilter: "blur(20px)" }}>
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button key={item.label} onClick={() => onGo(item.page)}
+              className={`flex items-center gap-3 w-full text-left px-5 py-2.5 text-xs hover:text-white hover:bg-white/5 transition-colors font-bold tracking-wider uppercase ${currentPage === item.page ? "text-white" : "text-white/40"}`}
+              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+              {Icon && <Icon size={14} className="opacity-50" />}
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   Desktop mega-menu (Use Cases — two columns)
+   ═══════════════════════════════════════════ */
+function MegaMenuPanel({ mega, currentPage, onGo }: {
+  mega: NonNullable<NavSection["mega"]>;
+  currentPage: string;
+  onGo: (page: string) => void;
+}) {
+  return (
+    <motion.div
+      className="absolute top-full left-1/2 pt-1"
+      style={{ minWidth: 480, zIndex: 60, transform: "translateX(-50%)" }}
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div className="border border-white/10 p-6" style={{ backgroundColor: "#0a0a0a", backdropFilter: "blur(20px)" }}>
+        <div className="flex gap-10">
+          {mega.columns.map((col) => (
+            <div key={col.heading} className="flex-1 min-w-[180px]">
+              <span className="block text-[10px] font-black tracking-[0.22em] uppercase mb-3"
+                style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#60c8ff" }}>
+                {col.heading}
+              </span>
+              <div className="flex flex-col gap-0.5">
+                {col.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button key={item.label} onClick={() => onGo(item.page)}
+                      className={`flex items-center gap-3 w-full text-left px-3 py-2 text-xs hover:text-white hover:bg-white/5 transition-colors font-bold tracking-wider uppercase rounded ${currentPage === item.page ? "text-white" : "text-white/40"}`}
+                      style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                      {Icon && <Icon size={14} className="opacity-50" />}
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        {mega.footerLabel && (
+          <div className="mt-4 pt-3 border-t border-white/8">
+            <button onClick={() => onGo(mega.footerPage ?? "industries")}
+              className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-white/40 hover:text-white transition-colors px-3 py-1.5"
+              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+              {mega.footerLabel}
+              <span className="text-[10px]">→</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════
+   Main Nav Component
+   ═══════════════════════ */
+
 interface NavProps {
   currentPage: string;
   onNavigate: (page: string) => void;
@@ -127,18 +314,16 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
-  // offset = index of item shown at slot 0 (top of arc)
+  const [activeMobileSection, setActiveMobileSection] = useState<string | null>(null);
   const [offset, setOffset] = useState(0);
-  // direction: +1 means wheel rotated forward (items exit upward), -1 means backward
   const [wheelDir, setWheelDir] = useState<1 | -1>(1);
   const [vp, setVp] = useState({ w: 390, h: 844 });
+  const [openDesktopDropdown, setOpenDesktopDropdown] = useState<string | null>(null);
 
-  // Live drag tracking
   const dragStartY = useRef<number | null>(null);
-  const DRAG_THRESHOLD = 35; // px to count as a swipe
-
-  // Track whether we pushed a history entry for the menu, so we can pop it correctly
+  const DRAG_THRESHOLD = 35;
   const menuHistoryRef = useRef(false);
+  const dropdownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -153,12 +338,7 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  // ── Back-button / swipe-back integration ──────────────────────────────────
-  // Push a history entry when the mobile menu opens so that the browser back
-  // button (or iOS/Android swipe-back gesture) closes the menu instead of
-  // navigating away from the site. The sub-menu (services wheel) intentionally
-  // does NOT push its own entry — back always closes the whole menu; the
-  // "← Menu" button is used to go from sub → main nav.
+  // Back-button / swipe-back integration
   useEffect(() => {
     if (menuOpen) {
       history.pushState({ bpMenu: true }, "");
@@ -168,13 +348,12 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
         menuHistoryRef.current = false;
         setMenuOpen(false);
         setSubOpen(false);
+        setActiveMobileSection(null);
         setOffset(0);
       };
       window.addEventListener("popstate", onPop, { once: true });
       return () => window.removeEventListener("popstate", onPop);
     } else {
-      // Menu was closed programmatically (nav item tapped, CTA tapped, etc.)
-      // — pop the history entry we pushed so the back stack stays clean.
       if (menuHistoryRef.current) {
         menuHistoryRef.current = false;
         history.back();
@@ -182,30 +361,57 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
     }
   }, [menuOpen]);
 
-  const servicesItem = NAV_ITEMS.find((it) => it.label === "Services");
-  const allSubItems = (servicesItem?.sub ?? []).map((s) => {
-    const [label, page] = s.split("|");
-    return { label, page: page ?? "services" };
-  });
-  const total = allSubItems.length;
+  // Close desktop dropdown when clicking outside
+  useEffect(() => {
+    if (!openDesktopDropdown) return;
+    const close = () => setOpenDesktopDropdown(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [openDesktopDropdown]);
+
+  /* ── Get sub-items for the active mobile section ── */
+  const activeSectionData = NAV_SECTIONS.find((s) => s.label === activeMobileSection);
+  const mobileSubItems: { label: string; page: string }[] = [];
+  if (activeSectionData?.mega) {
+    activeSectionData.mega.columns.forEach((col) => col.items.forEach((it) => mobileSubItems.push(it)));
+  } else if (activeSectionData?.sub) {
+    activeSectionData.sub.forEach((it) => mobileSubItems.push(it));
+  }
+  const total = mobileSubItems.length;
 
   const go = (page: string) => {
     onNavigate(page);
     setMenuOpen(false);
     setSubOpen(false);
+    setActiveMobileSection(null);
     setOffset(0);
+    setOpenDesktopDropdown(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const openSub = () => { setSubOpen(true); setOffset(0); };
-  const closeSub = () => { setSubOpen(false); setOffset(0); };
+  const openMobileSub = (sectionLabel: string) => {
+    setActiveMobileSection(sectionLabel);
+    setSubOpen(true);
+    setOffset(0);
+  };
+  const closeSub = () => { setSubOpen(false); setActiveMobileSection(null); setOffset(0); };
 
-  // Rotate wheel by +1 or -1
   const rotate = (dir: 1 | -1) => {
+    if (total === 0) return;
     setWheelDir(dir);
     setOffset((prev) => (prev + dir + total) % total);
   };
 
+  /* ── Desktop dropdown handlers ── */
+  const handleDropdownEnter = (label: string) => {
+    if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
+    setOpenDesktopDropdown(label);
+  };
+  const handleDropdownLeave = () => {
+    dropdownTimeoutRef.current = setTimeout(() => setOpenDesktopDropdown(null), 150);
+  };
+
+  /* ── Arc geometry for mobile ── */
   const cx = vp.w + 30;
   const cy = vp.h * 0.42;
   const radius = Math.min(vp.w * 0.68, 280);
@@ -219,24 +425,20 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
     return { x: cx + Math.cos(rad) * radius, y: cy + Math.sin(rad) * radius };
   });
 
-  const arcNavItems = NAV_ITEMS.map((item, i) => {
-    const t = i / (NAV_ITEMS.length - 1);
+  const mobileNavItems = NAV_SECTIONS.map((s, i) => {
+    const t = i / (NAV_SECTIONS.length - 1);
     const deg = START_ANGLE + (END_ANGLE - START_ANGLE) * t;
     const rad = (deg * Math.PI) / 180;
-    return { ...item, x: cx + Math.cos(rad) * radius, y: cy + Math.sin(rad) * radius };
+    return { ...s, hasSub: !!(s.sub || s.mega), x: cx + Math.cos(rad) * radius, y: cy + Math.sin(rad) * radius };
   });
 
-  // Throttle scroll so one flick = one step
   const scrollCooldown = useRef(false);
-
   const onWheel = (e: React.WheelEvent) => {
     if (!subOpen || scrollCooldown.current) return;
     rotate(e.deltaY > 0 ? 1 : -1);
     scrollCooldown.current = true;
     setTimeout(() => { scrollCooldown.current = false; }, 400);
   };
-
-  // Touch swipe
   const onTouchStart = (e: React.TouchEvent) => {
     if (subOpen) dragStartY.current = e.touches[0].clientY;
   };
@@ -247,6 +449,18 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
     dragStartY.current = null;
   };
 
+  /* Helper: check if a section or its children is active */
+  const isSectionActive = (section: NavSection): boolean => {
+    if (currentPage === section.page) return true;
+    if (section.sub?.some((s) => currentPage === s.page)) return true;
+    if (section.mega) {
+      for (const col of section.mega.columns) {
+        if (col.items.some((it) => currentPage === it.page)) return true;
+      }
+    }
+    return false;
+  };
+
   return (
     <>
       {/* ─── HEADER ─── */}
@@ -255,45 +469,82 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
         style={{ backgroundColor: scrolled ? "rgba(0,0,0,0.96)" : "rgba(0,0,0,0.85)", backdropFilter: "blur(16px)", borderColor: "rgba(255,255,255,0.08)" }}
       >
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
+          {/* Logo */}
           <button onClick={() => go("home")} className="flex items-center gap-3 shrink-0 hover:opacity-80 transition-opacity">
             <img src={beLogo} alt="BePrompter" className="h-8 w-8 object-cover" style={{ borderRadius: 0 }} />
             <span className="text-white font-black tracking-widest text-xs uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.22em" }}>BePrompter</span>
           </button>
 
+          {/* ─── Desktop Nav ─── */}
           <nav className="hidden lg:flex items-center">
-            {NAV_ITEMS.map((item) => {
-              // Sub-items can be "Label|page" (for grouped pages) or plain "Label" (Services wheel)
-              const subPages = item.sub?.map((s) => s.includes("|") ? s.split("|") as [string, string] : [s, item.page] as [string, string]);
-              const isActive = currentPage === item.page || (subPages?.some(([, p]) => currentPage === p) ?? false);
+            {NAV_SECTIONS.map((section) => {
+              const active = isSectionActive(section);
+              const hasDropdown = !!(section.sub || section.mega);
+              const isOpen = openDesktopDropdown === section.label;
+
               return (
-                <div key={item.label} className="relative group">
-                  <button onClick={() => go(item.page)}
-                    className={`px-4 py-5 text-xs font-bold tracking-widest uppercase flex items-center gap-1 transition-colors border-b-2 ${isActive ? "text-white border-white" : "text-white/40 hover:text-white border-transparent"}`}
-                    style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                    {item.label}
-                    {item.sub && <ChevronDown size={9} className="opacity-50" />}
+                <div key={section.label} className="relative"
+                  onMouseEnter={() => hasDropdown && handleDropdownEnter(section.label)}
+                  onMouseLeave={handleDropdownLeave}
+                >
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (hasDropdown) {
+                        setOpenDesktopDropdown(isOpen ? null : section.label);
+                      } else {
+                        go(section.page);
+                      }
+                    }}
+                    className={`px-4 py-5 text-xs font-bold tracking-widest uppercase flex items-center gap-1 transition-colors border-b-2 ${
+                      section.highlight
+                        ? active
+                          ? "border-[#60c8ff]"
+                          : "border-transparent hover:border-[#60c8ff]/50"
+                        : active
+                          ? "text-white border-white"
+                          : "text-white/40 hover:text-white border-transparent"
+                    }`}
+                    style={{
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      ...(section.highlight ? {
+                        color: active ? "#60c8ff" : undefined,
+                        textShadow: "0 0 20px rgba(96,200,255,0.4)",
+                        background: "linear-gradient(180deg, transparent 0%, rgba(96,200,255,0.04) 100%)",
+                      } : {}),
+                    }}
+                  >
+                    {section.label}
+                    {hasDropdown && (
+                      <motion.span
+                        animate={{ rotate: isOpen ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                        style={{ display: "inline-flex" }}
+                      >
+                        <ChevronDown size={9} className="opacity-50" />
+                      </motion.span>
+                    )}
                   </button>
-                  {subPages && (
-                    <div className="absolute top-full left-0 hidden group-hover:block" style={{ minWidth: 180 }}>
-                      <div className="border border-white/10 py-1" style={{ backgroundColor: "#0a0a0a" }}>
-                        {subPages.map(([label, page]) => (
-                          <button key={label} onClick={() => go(page)}
-                            className={`block w-full text-left px-5 py-2.5 text-xs hover:text-white hover:bg-white/5 transition-colors font-bold tracking-wider uppercase ${currentPage === page ? "text-white" : "text-white/40"}`}
-                            style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{label}</button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+
+                  {/* Dropdown / Mega-menu */}
+                  <AnimatePresence>
+                    {isOpen && section.sub && (
+                      <DropdownPanel items={section.sub} currentPage={currentPage} onGo={go} />
+                    )}
+                    {isOpen && section.mega && (
+                      <MegaMenuPanel mega={section.mega} currentPage={currentPage} onGo={go} />
+                    )}
+                  </AnimatePresence>
                 </div>
               );
             })}
           </nav>
 
+          {/* ─── Desktop Right Actions ─── */}
           <div className="hidden lg:flex items-center gap-3">
             {user ? (
               <motion.button
                 onClick={() => {
-                  // Determine dashboard from user metadata role
                   const role = user.user_metadata?.role;
                   go(role === "partner" ? "partner-dashboard" : "client-dashboard");
                 }}
@@ -316,14 +567,15 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
                 Sign In
               </motion.button>
             )}
-            <motion.button onClick={() => go("contact")}
+            <motion.button onClick={() => go("lets-talk")}
               className="bg-white text-black text-xs font-black tracking-widest uppercase px-5 py-2.5 hover:bg-white/90 transition-colors"
               style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
               whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>{"Let's Talk"}</motion.button>
           </div>
 
+          {/* ─── Mobile Hamburger ─── */}
           <button className="lg:hidden relative z-[60] w-8 h-6 flex flex-col justify-between items-end"
-            onClick={() => { setMenuOpen(!menuOpen); setSubOpen(false); setOffset(0); }} aria-label="Toggle menu">
+            onClick={() => { setMenuOpen(!menuOpen); setSubOpen(false); setActiveMobileSection(null); setOffset(0); }} aria-label="Toggle menu">
             <motion.span className="block h-px bg-white w-full" animate={menuOpen ? { rotate: 45, y: 10 } : { rotate: 0, y: 0 }} transition={{ duration: 0.3 }} />
             <motion.span className="block h-px bg-white" style={{ width: "66%" }} animate={menuOpen ? { opacity: 0 } : { opacity: 1 }} transition={{ duration: 0.15 }} />
             <motion.span className="block h-px bg-white" style={{ width: "45%" }} animate={menuOpen ? { width: "100%", rotate: -45, y: -10 } : { rotate: 0, y: 0 }} transition={{ duration: 0.3 }} />
@@ -331,7 +583,7 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
         </div>
       </div>
 
-      {/* ─── SCI-FI ARC MENU ─── */}
+      {/* ─── SCI-FI ARC MENU (Mobile) ─── */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -370,7 +622,7 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
 
             {/* Spoke lines */}
             <svg className="absolute inset-0 pointer-events-none" width={vp.w} height={vp.h} style={{ overflow: "visible" }}>
-              {(subOpen ? arcPositions : arcNavItems).map((pos, i) => (
+              {(subOpen ? arcPositions : mobileNavItems).map((pos, i) => (
                 <motion.line key={i} x1={cx} y1={cy} x2={pos.x} y2={pos.y}
                   stroke="rgba(255,255,255,0.08)" strokeWidth={1}
                   initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }}
@@ -379,22 +631,22 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
               ))}
             </svg>
 
-            {/* ── MAIN NAV ── */}
+            {/* ── MAIN NAV (5 sections) ── */}
             <AnimatePresence>
-              {!subOpen && arcNavItems.map((item, i) => (
+              {!subOpen && mobileNavItems.map((item, i) => (
                 <ArcItem key={item.label} item={item} i={i}
-                  isActive={currentPage === item.page}
+                  isActive={isSectionActive(item)}
                   vp={vp} onGo={go}
-                  onOpenSub={item.label === "Services" ? openSub : undefined}
+                  onOpenSub={item.hasSub ? () => openMobileSub(item.label) : undefined}
                 />
               ))}
             </AnimatePresence>
 
-            {/* ── SERVICES WHEEL — items keyed by label so they slide between positions ── */}
+            {/* ── SUB WHEEL — items keyed by label so they slide between positions ── */}
             <LayoutGroup>
               <AnimatePresence>
-                {subOpen && arcPositions.map((pos, slotIdx) => {
-                  const item = allSubItems[(offset + slotIdx) % total];
+                {subOpen && total > 0 && arcPositions.map((pos, slotIdx) => {
+                  const item = mobileSubItems[(offset + slotIdx) % total];
                   return (
                     <WheelItem
                       key={item.label}
@@ -424,7 +676,7 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
                       <ChevronLeft size={12} /> Menu
                     </button>
                     <span className="text-white/20 uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: "0.22em" }}>
-                      Services
+                      {activeMobileSection}
                     </span>
                   </div>
 
@@ -443,7 +695,7 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
 
             {/* CTAs */}
             <div className="absolute flex flex-col items-center gap-3" style={{ bottom: 48, left: "50%", transform: "translateX(-50%)" }}>
-              <motion.button onClick={() => go("contact")}
+              <motion.button onClick={() => go("lets-talk")}
                 className="bg-white text-black text-xs font-black tracking-widest uppercase px-7 py-3"
                 style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
                 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}

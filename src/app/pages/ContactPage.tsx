@@ -22,25 +22,19 @@ function AnimReveal({ children, className = "", delay = 0 }: { children: React.R
 }
 
 const SERVICES_LIST = [
-  "Web App Development",
-  "Mobile App Development",
-  "E-Commerce Solution",
-  "Marketing & SEO",
-  "AI & SaaS",
-  "Business Software",
-  "WhatsApp & Automation",
-  "Custom AI Bot",
-  "AI Tool Integration",
-  "Video & Content Creation",
-  "Multiple Services",
+  "WhatsApp AI Bot",
+  "WhatsApp-to-CRM Engine",
+  "Smart Landing Page",
+  "Internal Brain KB",
+  "Custom Development",
+  "Other",
 ];
-const BUDGETS = ["Under $5K", "$5K – $15K", "$15K – $50K", "$50K – $150K", "$150K+"];
 
 // Paste your deployed Apps Script URL here after following the setup steps
 const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycby4YSqhMQ_Vv5GZs84NSbA7lh6m0EvG_I-3QpiNfbNNE4GEjuukXEOWA8Rkn7FyZquWVg/exec";
 
 export function ContactPage() {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", service: "", budget: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", service: "", message: "" });
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -57,7 +51,6 @@ export function ContactPage() {
         phone: form.phone,
         company_name: form.company,
         service_interest: form.service,
-        budget: form.budget,
         message: form.message
       });
 
@@ -80,7 +73,6 @@ export function ContactPage() {
           phone: form.phone || "",
           company: form.company || "",
           service: form.service || "",
-          budget: form.budget || "",
           message: form.message
         })
       });
@@ -103,10 +95,10 @@ export function ContactPage() {
               <span className="w-6 h-px bg-white/50" /> Get In Touch
             </p>
             <h1 className="text-white leading-[0.92] mb-6" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(3rem, 7vw, 5.5rem)", fontWeight: 900 }}>
-              LET'S BUILD<br /><span className="text-white">SOMETHING</span><br />EXCEPTIONAL
+              GET IN <br /><span className="text-white">TOUCH</span>
             </h1>
             <p className="text-white/60 text-lg leading-relaxed max-w-xl" style={{ fontFamily: "'Inter', sans-serif" }}>
-              Tell us about your project and we'll get back to you within one business day with a tailored plan.
+              Have questions about our automation services? Send us a message and we'll get back to you within one business day.
             </p>
           </motion.div>
         </div>
@@ -119,7 +111,7 @@ export function ContactPage() {
           <div className="bg-white p-8 lg:p-12 shadow-sm" style={{ position: "relative", zIndex: 1 }}>
               {!sent ? (
                 <>
-                  <h2 className="text-[#0a0a0a] font-black mb-2" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.8rem" }}>REQUEST A PROPOSAL</h2>
+                  <h2 className="text-[#0a0a0a] font-black mb-2" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "1.8rem" }}>CONTACT US</h2>
                   <p className="text-[#999] text-sm mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>All fields marked with * are required.</p>
 
                   <form onSubmit={handleSubmit} className="space-y-5" style={{ pointerEvents: "auto", position: "relative", zIndex: 2 }}>
@@ -130,7 +122,7 @@ export function ContactPage() {
                           required
                           value={form.name}
                           onChange={(e) => setForm({ ...form, name: e.target.value })}
-                          placeholder="Jane Smith"
+                          placeholder="Shaurya Pratap"
                           className="w-full border border-[#e0e0e0] px-4 py-3 text-sm outline-none focus:border-black transition-colors bg-white text-black"
                           style={{ fontFamily: "'Inter', sans-serif" }}
                         />
@@ -142,7 +134,7 @@ export function ContactPage() {
                           type="email"
                           value={form.email}
                           onChange={(e) => setForm({ ...form, email: e.target.value })}
-                          placeholder="jane@company.com"
+                          placeholder="kavyashah@beprompter.in"
                           className="w-full border border-[#e0e0e0] px-4 py-3 text-sm outline-none focus:border-black transition-colors bg-white text-black"
                           style={{ fontFamily: "'Inter', sans-serif" }}
                         />
@@ -156,7 +148,7 @@ export function ContactPage() {
                           type="tel"
                           value={form.phone}
                           onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                          placeholder="+1 (555) 000-0000"
+                          placeholder="+91 8200851975"
                           className="w-full border border-[#e0e0e0] px-4 py-3 text-sm outline-none focus:border-black transition-colors bg-white text-black"
                           style={{ fontFamily: "'Inter', sans-serif" }}
                         />
@@ -192,33 +184,16 @@ export function ContactPage() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold tracking-widests uppercase mb-3 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Project Budget</label>
-                      <div className="flex flex-wrap gap-2">
-                        {BUDGETS.map((b) => (
-                          <button
-                            key={b}
-                            type="button"
-                            onClick={() => setForm({ ...form, budget: b })}
-                            className={`px-3 py-1.5 text-xs font-bold tracking-wider uppercase border transition-all ${
-                              form.budget === b ? "bg-[#0a0a0a] border-[#0a0a0a] text-white" : "border-[#e0e0e0] text-[#666] hover:border-[#0a0a0a] hover:text-[#0a0a0a]"
-                            }`}
-                            style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-                          >
-                            {b}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+
 
                     <div>
-                      <label className="block text-xs font-bold tracking-widests uppercase mb-2 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Tell Us About Your Project *</label>
+                      <label className="block text-xs font-bold tracking-widests uppercase mb-2 text-[#333]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>How can we help you? *</label>
                       <textarea
                         required
                         rows={5}
                         value={form.message}
                         onChange={(e) => setForm({ ...form, message: e.target.value })}
-                        placeholder="Share your goals, challenges, and any details that will help us craft the right proposal..."
+                        placeholder="Share your goals, challenges, and any details..."
                         className="w-full border border-[#e0e0e0] px-4 py-3 text-sm outline-none focus:border-black transition-colors bg-white text-black resize-none"
                         style={{ fontFamily: "'Inter', sans-serif" }}
                       />
@@ -264,10 +239,10 @@ export function ContactPage() {
               <h3 className="text-white font-black mb-6 text-lg" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.05em" }}>CONTACT INFO</h3>
               <div className="space-y-5">
                 {[
-                  { icon: Mail, label: "Email", value: "hello@beprompter.com" },
-                  { icon: Phone, label: "Phone", value: "+1 (888) 000-0000" },
-                  { icon: MapPin, label: "Office", value: "123 Digital Ave, San Francisco, CA 94105" },
-                  { icon: Clock, label: "Hours", value: "Mon–Fri, 9am–6pm PST" },
+                  { icon: Mail, label: "Email", value: "support@beprompter.in" },
+                  { icon: Phone, label: "Phone", value: "8200851975" },
+                  { icon: MapPin, label: "Office", value: "Shop No. 7, S.F. 3410, 3411, Behind Shethiya Building, Kalupur Chakla, Ahmadabad City, Ahmedabad, Gujarat, India — 380001" },
+                  { icon: Clock, label: "Hours", value: "Mon–Fri, 9am–6pm IST" },
                 ].map((item) => (
                   <div key={item.label} className="flex items-start gap-4">
                     <div className="w-8 h-8 bg-white rounded flex items-center justify-center shrink-0">
@@ -288,6 +263,7 @@ export function ContactPage() {
                 Prefer to talk first? Book a free 30-minute strategy call with one of our experts.
               </p>
               <motion.button
+                onClick={() => window.open("https://cal.id/kalpvruksh-ai", "_blank")}
                 className="bg-white hover:bg-white/90 text-black text-xs font-bold tracking-widest uppercase px-6 py-3 transition-colors w-full"
                 style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
@@ -323,8 +299,8 @@ export function ContactPage() {
             >
               <MapPin size={24} className="text-black" />
             </motion.div>
-            <p className="text-white font-black text-lg mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>San Francisco, CA</p>
-            <p className="text-white/40 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>123 Digital Ave, Suite 400</p>
+            <p className="text-white font-black text-lg mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Ahmedabad, India</p>
+            <p className="text-white/40 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>Kalupur Chakla</p>
           </div>
         </div>
       </section>

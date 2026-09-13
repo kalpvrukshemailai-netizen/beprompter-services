@@ -3,12 +3,10 @@ import { motion, useScroll, useTransform, useInView } from "motion/react";
 import { ArrowRight, Bot, Mic, Zap, Settings2, MessageSquare, Database, Cpu, Plug, Monitor, Smartphone, Shield, TrendingUp, Users, Lock, ChevronRight } from "lucide-react";
 
 const SERVICES_GRID = [
-  { icon: Bot,          title: "AI Chatbots",           desc: "Intelligent agents trained on your proprietary data, operating 24/7." },
-  { icon: Mic,          title: "Voice Agents",          desc: "Conversational voice AI for inbound calls and bookings." },
-  { icon: Zap,          title: "Workflow Automation",   desc: "End-to-end automation of repetitive tasks across systems." },
-  { icon: Database,     title: "CRM Pipelines",         desc: "Smart CRM operations with AI lead scoring and tracking." },
-  { icon: Cpu,          title: "Custom AI Agents",      desc: "Purpose-built agents that reason, plan, and execute workflows." },
-  { icon: Monitor,      title: "Custom Software",       desc: "Bespoke internal tools engineered for your operations." },
+  { icon: MessageSquare, title: "AI WhatsApp Bots",         desc: "Instant lead capture and customer qualification 24/7." },
+  { icon: Database,      title: "WhatsApp-to-CRM Engine",   desc: "Eliminate manual data entry and sync leads instantly." },
+  { icon: Monitor,       title: "AI Smart Landing Pages",   desc: "Interactive sites that capture 3x more customer inquiries." },
+  { icon: Bot,           title: "Internal Brain AI",        desc: "Secure RAG search engine trained on your company data." },
 ];
 
 const WHY_US = [
@@ -60,42 +58,68 @@ export function HomePage({ onNavigate }: { onNavigate: (p: string) => void }) {
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-white opacity-[0.03] blur-[120px] rounded-full pointer-events-none translate-x-1/3 -translate-y-1/3" />
 
         <motion.div className="relative z-10 max-w-6xl mx-auto w-full pt-20" style={{ y, opacity }}>
-          <FadeIn>
-            <div className="inline-flex items-center gap-3 px-3 py-1.5 border border-white/10 rounded-full mb-8 bg-white/5 backdrop-blur-md">
-              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <span className="text-xs font-mono uppercase tracking-widest text-white/70">BePrompter Engineering</span>
+          <div className="grid lg:grid-cols-[1fr_400px] gap-12 items-center">
+            {/* Left Copy */}
+            <div>
+              <FadeIn>
+                <div className="inline-flex items-center gap-3 px-3 py-1.5 border border-white/10 rounded-full mb-8 bg-white/5 backdrop-blur-md">
+                  <span className="w-2 h-2 rounded-full bg-[#60c8ff] animate-pulse" />
+                  <span className="text-xs font-mono uppercase tracking-widest text-white/70">BePrompter Engineering</span>
+                </div>
+              </FadeIn>
+              
+              <FadeIn delay={0.1}>
+                <h1 className="text-5xl md:text-6xl lg:text-[5.5rem] font-heading font-medium leading-[1.05] tracking-tight mb-8">
+                  Stop Losing Leads. <br />
+                  <span className="text-[#60c8ff]">Start Automating Growth.</span>
+                </h1>
+              </FadeIn>
+              
+              <FadeIn delay={0.2} className="max-w-xl">
+                <p className="text-lg md:text-xl text-white/60 font-sans leading-relaxed mb-10">
+                  We build AI WhatsApp Bots, Smart Landing Pages, and CRM Automations that capture leads 24/7, eliminate manual data entry, and increase your revenue.
+                </p>
+              </FadeIn>
+              
+              <FadeIn delay={0.3}>
+                <button 
+                  onClick={() => onNavigate("casestudies")}
+                  className="group inline-flex items-center gap-3 text-white/60 hover:text-white text-sm font-medium tracking-wide transition-colors"
+                >
+                  View Case Studies
+                  <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              </FadeIn>
             </div>
-          </FadeIn>
-          
-          <FadeIn delay={0.1}>
-            <h1 className="text-5xl md:text-7xl lg:text-[7rem] font-heading font-medium leading-[0.95] tracking-tight mb-8">
-              We engineer <br className="hidden md:block" />
-              <span className="text-white/40">AI automation</span>
-            </h1>
-          </FadeIn>
-          
-          <FadeIn delay={0.2} className="max-w-2xl">
-            <p className="text-lg md:text-xl text-white/60 font-sans leading-relaxed mb-12">
-              Transforming manual workflows into autonomous systems. We build bespoke AI agents, intelligent pipelines, and enterprise software that scales your operations seamlessly.
-            </p>
-          </FadeIn>
-          
-          <FadeIn delay={0.3} className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <button 
-              onClick={() => onNavigate("contact")}
-              className="group relative inline-flex items-center gap-4 bg-white text-black px-8 py-4 text-sm font-medium tracking-wide transition-transform hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Start a Project
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button 
-              onClick={() => onNavigate("casestudies")}
-              className="group inline-flex items-center gap-3 text-white/60 hover:text-white px-8 py-4 text-sm font-medium tracking-wide transition-colors"
-            >
-              View Case Studies
-              <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </button>
-          </FadeIn>
+
+            {/* Right Form */}
+            <FadeIn delay={0.25}>
+              <div className="border border-white/10 bg-white/5 backdrop-blur-lg p-6 rounded-xl">
+                <h3 className="text-lg font-medium mb-5 text-white">Find your bottleneck.</h3>
+                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); onNavigate("contact"); }}>
+                  <div>
+                    <input type="text" placeholder="Full Name" className="w-full bg-black/40 border border-white/10 rounded-md px-4 py-3 text-sm focus:outline-none focus:border-[#60c8ff] text-white placeholder-white/30" required />
+                  </div>
+                  <div>
+                    <input type="tel" placeholder="Business Phone Number (WhatsApp)" className="w-full bg-black/40 border border-white/10 rounded-md px-4 py-3 text-sm focus:outline-none focus:border-[#60c8ff] text-white placeholder-white/30" required />
+                  </div>
+                  <div>
+                    <select className="w-full bg-black/40 border border-white/10 rounded-md px-4 py-3 text-sm focus:outline-none focus:border-[#60c8ff] text-white/70 appearance-none" required defaultValue="">
+                      <option value="" disabled>Biggest business bottleneck right now?</option>
+                      <option value="leads">Losing leads & slow response times</option>
+                      <option value="data">Too much manual data entry</option>
+                      <option value="website">Low website conversion rate</option>
+                      <option value="internal">Team can't find internal information</option>
+                    </select>
+                  </div>
+                  <button type="submit" className="w-full bg-white text-black py-3 text-sm font-bold tracking-wide rounded-md hover:bg-white/90 transition-colors">
+                    Get Free Custom Report
+                  </button>
+                </form>
+                <p className="text-[11px] text-white/30 text-center mt-4">We respect your privacy. No spam.</p>
+              </div>
+            </FadeIn>
+          </div>
         </motion.div>
       </section>
 
