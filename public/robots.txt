@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Block internal/auth routes
+Disallow: /auth
+Disallow: /client-dashboard
+Disallow: /developer-dashboard
+Disallow: /sales-dashboard
+Disallow: /admin-dashboard
+
+# Block build artifacts
+Disallow: /node_modules/
+
+Sitemap: https://beprompter.services/sitemap.xml

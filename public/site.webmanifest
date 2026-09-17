@@ -1,0 +1,19 @@
+{
+  "name": "BePrompter — AI Systems for Business Growth",
+  "short_name": "BePrompter",
+  "description": "AI WhatsApp Bots, CRM Automations, Smart Landing Pages, and more — built by BePrompter.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#60c8ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"]
+}

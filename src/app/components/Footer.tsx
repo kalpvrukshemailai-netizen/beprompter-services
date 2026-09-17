@@ -92,6 +92,7 @@ export function Footer({ onNavigate }: FooterProps) {
             <button onClick={() => go("privacy-policy")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Privacy Policy</button>
             <a href="#" className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Terms of Service</a>
             <a href="#" className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Cookie Policy</a>
+            <button onClick={() => go("sitemap")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Sitemap</button>
           </div>
         </div>
       </div>

@@ -19,13 +19,17 @@ import { AgencyPartnersPage } from "@/app/pages/AgencyPartnersPage";
 import { TrustPage } from "@/app/pages/TrustPage";
 import { PrivacyPolicyPage } from "@/app/pages/PrivacyPolicyPage";
 import { LetsTalkPage } from "@/app/pages/LetsTalkPage";
+import { SitemapPage } from "@/app/pages/SitemapPage";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
+import { useSEO } from "@/lib/seo";
+import { StructuredData } from "@/app/components/StructuredData";
 
 type Page =
   | "home" | "about" | "services"
   | "contact" | "real-estate"
   | "industries" | "insights" | "case-studies" | "agency-partners" | "trust" | "privacy-policy" | "lets-talk"
+  | "sitemap"
   | "auth" | "client-dashboard" | "developer-dashboard" | "sales-dashboard" | "admin-dashboard";
 
 const pageVariants = {
@@ -41,6 +45,9 @@ export default function App() {
   const [serviceIndex, setServiceIndex] = useState(0);
   const [scrollToDetail, setScrollToDetail] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+
+  // ── SEO: update meta tags + JSON-LD on every page navigation ──
+  useSEO(page);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -133,6 +140,7 @@ export default function App() {
       case "trust":            return <TrustPage onNavigate={navigate} />;
       case "privacy-policy":   return <PrivacyPolicyPage />;
       case "lets-talk":        return <LetsTalkPage />;
+      case "sitemap":          return <SitemapPage onNavigate={navigate} />;
       case "auth":             return <AuthPage onNavigate={navigate} />;
       case "client-dashboard": return <ClientDashboard onNavigate={navigate} />;
       case "developer-dashboard":return <DeveloperDashboard onNavigate={navigate} />;
@@ -144,6 +152,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen" style={{ fontFamily: "'Barlow', 'Inter', sans-serif" }}>
+      {/* ── JSON-LD Structured Data (injected into <head> via dangerouslySetInnerHTML) ── */}
+      <StructuredData page={page} />
+
       <Nav currentPage={page} onNavigate={navigate} user={user} />
 
       <AnimatePresence mode="wait">
