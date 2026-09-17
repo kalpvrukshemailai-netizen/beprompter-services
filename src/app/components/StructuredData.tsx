@@ -11,7 +11,7 @@
  */
 
 const BASE_URL = "https://beprompter.services";
-const LOGO_URL = `${BASE_URL}/favicon.svg`;
+const LOGO_URL = `${BASE_URL}/favicon.jpeg`;
 
 // ─── Organization Schema ──────────────────────────────────────────────────────
 
