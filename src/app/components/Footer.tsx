@@ -59,10 +59,13 @@ export function Footer({ onNavigate }: FooterProps) {
               AI Engineering & Automation partner — building AI agents, workflow automation, and custom software for businesses and agencies.
             </p>
             <div className="flex gap-2">
-              {["in", "tw", "ig", "yt"].map((s) => (
-                <div key={s} className="w-7 h-7 border border-white/10 flex items-center justify-center text-white/30 hover:border-white hover:text-white transition-colors cursor-pointer text-xs font-bold uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                  {s}
-                </div>
+              {[
+                { label: "in", url: "https://in.linkedin.com/company/beprompter" },
+                { label: "ig", url: "https://www.instagram.com/beprompter.ai/" },
+              ].map((s) => (
+                <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer" className="w-7 h-7 border border-white/10 flex items-center justify-center text-white/30 hover:border-white hover:text-white transition-colors cursor-pointer text-xs font-bold uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                  {s.label}
+                </a>
               ))}
             </div>
           </div>
@@ -88,10 +91,16 @@ export function Footer({ onNavigate }: FooterProps) {
       <div className="border-t border-white/8">
         <div className="max-w-7xl mx-auto px-6 py-5 flex flex-col lg:flex-row items-center justify-between gap-2">
           <p className="text-white/20 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>© 2026 BePrompter Technology. All rights reserved.</p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-4 lg:gap-6 justify-center lg:justify-end mt-4 lg:mt-0">
             <button onClick={() => go("privacy-policy")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Privacy Policy</button>
-            <a href="#" className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Terms of Service</a>
-            <a href="#" className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Cookie Policy</a>
+            <button onClick={() => go("terms")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Terms of Service</button>
+            <button onClick={() => go("refund-policy")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Refund Policy</button>
+            <button onClick={() => go("cookie-policy")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Cookie Policy</button>
+            <button onClick={() => go("acceptable-use")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Acceptable Use</button>
+            <button onClick={() => go("ai-disclaimer")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>AI Disclaimer</button>
+            <button onClick={() => go("security")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Security</button>
+            <button onClick={() => go("grievance")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Grievance Redressal</button>
+            <button onClick={() => go("intellectual-property")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Intellectual Property</button>
             <button onClick={() => go("sitemap")} className="text-white/20 hover:text-white/50 text-xs transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Sitemap</button>
           </div>
         </div>

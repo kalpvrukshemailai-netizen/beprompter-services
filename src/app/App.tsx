@@ -18,6 +18,14 @@ import { CaseStudiesPage } from "@/app/pages/CaseStudiesPage";
 import { AgencyPartnersPage } from "@/app/pages/AgencyPartnersPage";
 import { TrustPage } from "@/app/pages/TrustPage";
 import { PrivacyPolicyPage } from "@/app/pages/PrivacyPolicyPage";
+import { TermsPage } from "@/app/pages/TermsPage";
+import { RefundPolicyPage } from "@/app/pages/RefundPolicyPage";
+import { CookiePolicyPage } from "@/app/pages/CookiePolicyPage";
+import { AcceptableUsePage } from "@/app/pages/AcceptableUsePage";
+import { AIDisclaimerPage } from "@/app/pages/AIDisclaimerPage";
+import { SecurityPage } from "@/app/pages/SecurityPage";
+import { GrievancePage } from "@/app/pages/GrievancePage";
+import { IntellectualPropertyPage } from "@/app/pages/IntellectualPropertyPage";
 import { LetsTalkPage } from "@/app/pages/LetsTalkPage";
 import { SitemapPage } from "@/app/pages/SitemapPage";
 import { supabase } from "@/lib/supabase";
@@ -29,6 +37,7 @@ type Page =
   | "home" | "about" | "services"
   | "contact" | "real-estate"
   | "industries" | "insights" | "case-studies" | "agency-partners" | "trust" | "privacy-policy" | "lets-talk"
+  | "terms" | "refund-policy" | "cookie-policy" | "acceptable-use" | "ai-disclaimer" | "security" | "grievance" | "intellectual-property"
   | "sitemap"
   | "auth" | "client-dashboard" | "developer-dashboard" | "sales-dashboard" | "admin-dashboard";
 
@@ -139,6 +148,14 @@ export default function App() {
       case "agency-partners":  return <AgencyPartnersPage onNavigate={navigate} />;
       case "trust":            return <TrustPage onNavigate={navigate} />;
       case "privacy-policy":   return <PrivacyPolicyPage />;
+      case "terms":            return <TermsPage />;
+      case "refund-policy":    return <RefundPolicyPage />;
+      case "cookie-policy":    return <CookiePolicyPage />;
+      case "acceptable-use":   return <AcceptableUsePage />;
+      case "ai-disclaimer":    return <AIDisclaimerPage />;
+      case "security":         return <SecurityPage />;
+      case "grievance":        return <GrievancePage />;
+      case "intellectual-property": return <IntellectualPropertyPage />;
       case "lets-talk":        return <LetsTalkPage />;
       case "sitemap":          return <SitemapPage onNavigate={navigate} />;
       case "auth":             return <AuthPage onNavigate={navigate} />;

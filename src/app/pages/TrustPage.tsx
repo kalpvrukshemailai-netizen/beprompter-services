@@ -146,286 +146,239 @@ export function TrustPage({ onNavigate }: { onNavigate: (p: string) => void }) {
 
 
       {/* ════════════════════════════════════════════════════
-          SECTION 1 — Zero-Risk Performance Guarantee
+          GUARANTEES GRID
           ════════════════════════════════════════════════════ */}
-      <section className="py-20 lg:py-28 border-t border-white/5">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="grid lg:grid-cols-[1fr_1.3fr] gap-14 items-start">
-            {/* Left — Title block */}
+      <section className="py-20 lg:py-28 border-t border-white/5 relative">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+            
+            {/* Guarantee 1 */}
             <FadeIn>
-              <div className="lg:sticky lg:top-28">
-                <div className="w-12 h-12 flex items-center justify-center border border-white/10 mb-5" style={{ backgroundColor: "rgba(251,191,36,0.06)" }}>
-                  <Wallet size={22} style={{ color: "#fbbf24" }} />
+              <div className="flex flex-col h-full">
+                <div className="mb-8">
+                  <div className="w-12 h-12 flex items-center justify-center border border-white/10 mb-5" style={{ backgroundColor: "rgba(251,191,36,0.06)" }}>
+                    <Wallet size={22} style={{ color: "#fbbf24" }} />
+                  </div>
+                  <span className="text-[10px] font-bold tracking-[0.22em] uppercase mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#fbbf24" }}>Guarantee #1</span>
+                  <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                    The "Zero‑Risk" <span style={{ color: "#fbbf24" }}>Performance Guarantee</span>
+                  </h2>
+                  <p className="text-white/35 text-sm leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>
+                    We don't demand big upfront cheques. You only pay for verified progress.
+                  </p>
                 </div>
-                <span className="text-[10px] font-bold tracking-[0.22em] uppercase mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#fbbf24" }}>Guarantee #1</span>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                  The "Zero‑Risk" <span style={{ color: "#fbbf24" }}>Performance Guarantee</span>
-                </h2>
-                <p className="text-white/35 text-sm leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>
-                  We don't demand big upfront cheques. You only pay for verified progress.
-                </p>
-              </div>
-            </FadeIn>
-
-            {/* Right — Content */}
-            <FadeIn delay={0.12}>
-              <div className="border border-white/8 p-7 md:p-9" style={{ backgroundColor: "rgba(255,255,255,0.015)" }}>
-                <p className="text-white/55 text-[15px] leading-[1.85] mb-8" style={{ fontFamily: "'Barlow', sans-serif" }}>
-                  Our development model is broken into <strong className="text-white/80">clear, verifiable milestones</strong>. You test and approve the working prototype on your own phone — before releasing core project payments. If we don't deliver what was agreed at any milestone, you don't pay for that milestone. Simple.
-                </p>
-
-                {/* Milestone flow */}
-                <div className="space-y-3">
-                  {[
-                    { step: "01", title: "Discovery & Scoping", badge: "20% Deposit", desc: "We map your exact requirements. You approve a written scope document before any work begins.", accent: "#fbbf24" },
-                    { step: "02", title: "Prototype Delivery", badge: "30% Payment", desc: "A working demo you can test on your own device. You verify it does what was promised.", accent: "#fbbf24" },
-                    { step: "03", title: "Core Build & Testing", badge: "30% Payment", desc: "Full system development with weekly progress reports. You see every screen, every flow.", accent: "#fbbf24" },
-                    { step: "04", title: "Launch & Handover", badge: "20% Final", desc: "Go-live with documentation, video walkthroughs, and full credential transfer to you.", accent: "#fbbf24" },
-                  ].map((m, i) => (
-                    <motion.div key={m.step}
-                      className="flex gap-4 items-start border border-white/5 px-5 py-4"
-                      style={{ backgroundColor: "rgba(251,191,36,0.015)" }}
-                      whileHover={{ borderColor: "rgba(251,191,36,0.15)", x: 3 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <span className="text-lg font-black shrink-0 w-8" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: m.accent, opacity: 0.4 }}>{m.step}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="text-sm font-black tracking-wider uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{m.title}</div>
-                          <div className="text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 border" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: m.accent, borderColor: "rgba(251,191,36,0.3)", backgroundColor: "rgba(251,191,36,0.05)" }}>
+                <div className="border border-white/8 p-7 md:p-9 flex-1" style={{ backgroundColor: "rgba(255,255,255,0.015)" }}>
+                  <p className="text-white/55 text-[15px] leading-[1.85] mb-8" style={{ fontFamily: "'Barlow', sans-serif" }}>
+                    Our development model is broken into <strong className="text-white/80">clear, verifiable milestones</strong>. You test and approve the working prototype on your own phone — before releasing core project payments. If we don't deliver what was agreed at any milestone, you don't pay for that milestone. Simple.
+                  </p>
+                  <div className="grid xl:grid-cols-2 gap-3">
+                    {[
+                      { step: "01", title: "Discovery & Scoping", badge: "20% Deposit", desc: "We map your exact requirements. You approve a written scope document before any work begins.", accent: "#fbbf24" },
+                      { step: "02", title: "Prototype Delivery", badge: "30% Payment", desc: "A working demo you can test on your own device. You verify it does what was promised.", accent: "#fbbf24" },
+                      { step: "03", title: "Core Build & Testing", badge: "30% Payment", desc: "Full system development with weekly progress reports. You see every screen, every flow.", accent: "#fbbf24" },
+                      { step: "04", title: "Launch & Handover", badge: "20% Final", desc: "Go-live with documentation, video walkthroughs, and full credential transfer to you.", accent: "#fbbf24" },
+                    ].map((m, i) => (
+                      <motion.div key={m.step}
+                        className="flex flex-col gap-3 border border-white/5 px-5 py-5"
+                        style={{ backgroundColor: "rgba(251,191,36,0.015)" }}
+                        whileHover={{ borderColor: "rgba(251,191,36,0.15)", y: -3 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-2xl font-black" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: m.accent, opacity: 0.4 }}>{m.step}</span>
+                          <div className="text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 border rounded-sm" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: m.accent, borderColor: "rgba(251,191,36,0.3)", backgroundColor: "rgba(251,191,36,0.05)" }}>
                             {m.badge}
                           </div>
                         </div>
-                        <div className="text-white/35 text-[13px] leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>{m.desc}</div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </FadeIn>
-          </div>
-        </div>
-      </section>
-
-
-      {/* ════════════════════════════════════════════════════
-          SECTION 2 — Technical Transparency & System Safety
-          ════════════════════════════════════════════════════ */}
-      <section className="py-20 lg:py-28 border-t border-white/5" style={{ backgroundColor: "rgba(96,200,255,0.015)" }}>
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="grid lg:grid-cols-[1fr_1.3fr] gap-14 items-start">
-            <FadeIn>
-              <div className="lg:sticky lg:top-28">
-                <div className="w-12 h-12 flex items-center justify-center border border-white/10 mb-5" style={{ backgroundColor: "rgba(96,200,255,0.06)" }}>
-                  <Server size={22} style={{ color: "#60c8ff" }} />
-                </div>
-                <span className="text-[10px] font-bold tracking-[0.22em] uppercase mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#60c8ff" }}>Guarantee #2</span>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                  Technical Transparency & <span style={{ color: "#60c8ff" }}>System Safety</span>
-                </h2>
-                <p className="text-white/35 text-sm leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>
-                  Your current systems keep running. Our automation works alongside, never against, what you already have.
-                </p>
-              </div>
-            </FadeIn>
-
-            <FadeIn delay={0.12}>
-              <div className="border border-white/8 p-7 md:p-9" style={{ backgroundColor: "rgba(255,255,255,0.015)" }}>
-                <p className="text-white/55 text-[15px] leading-[1.85] mb-8" style={{ fontFamily: "'Barlow', sans-serif" }}>
-                  We practise <strong className="text-white/80">non‑destructive integration</strong>. Our AI agents, WhatsApp automations, and workflow systems act as a smart layer <em>on top</em> of your current setup. We do not alter your core databases without full offline backups, and we use <strong className="text-white/80">secure middleware</strong> (n8n / Make) to ensure your data stays fully protected.
-                </p>
-
-                <div className="grid sm:grid-cols-2 gap-3">
-                  {[
-                    { icon: Database, text: "Full offline backups before any integration" },
-                    { icon: Server, text: "Secure middleware — never direct database writes" },
-                    { icon: CloudOff, text: "Kill-switch to instantly disable any automation" },
-                    { icon: Shield, text: "Staging environment tested before going live" },
-                  ].map((item, i) => {
-                    const Icon = item.icon;
-                    return (
-                      <motion.div key={i}
-                        className="flex items-start gap-3 border border-white/5 px-4 py-3.5"
-                        style={{ backgroundColor: "rgba(96,200,255,0.02)" }}
-                        whileHover={{ borderColor: "rgba(96,200,255,0.15)" }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <Icon size={15} className="mt-0.5 shrink-0" style={{ color: "#60c8ff", opacity: 0.6 }} />
-                        <span className="text-white/45 text-[13px] leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>{item.text}</span>
+                        <div>
+                          <div className="text-sm font-black tracking-wider uppercase mb-1.5" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{m.title}</div>
+                          <div className="text-white/35 text-[13px] leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>{m.desc}</div>
+                        </div>
                       </motion.div>
-                    );
-                  })}
-                </div>
-              </div>
-            </FadeIn>
-          </div>
-        </div>
-      </section>
-
-
-      {/* ════════════════════════════════════════════════════
-          SECTION 3 — Clear Ownership & No Vendor Lock-In
-          ════════════════════════════════════════════════════ */}
-      <section className="py-20 lg:py-28 border-t border-white/5">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="grid lg:grid-cols-[1fr_1.3fr] gap-14 items-start">
-            <FadeIn>
-              <div className="lg:sticky lg:top-28">
-                <div className="w-12 h-12 flex items-center justify-center border border-white/10 mb-5" style={{ backgroundColor: "rgba(52,211,153,0.06)" }}>
-                  <Key size={22} style={{ color: "#34d399" }} />
-                </div>
-                <span className="text-[10px] font-bold tracking-[0.22em] uppercase mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#34d399" }}>Guarantee #3</span>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                  100% Ownership & <span style={{ color: "#34d399" }}>No Vendor Lock‑In</span>
-                </h2>
-                <p className="text-white/35 text-sm leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>
-                  Your business should never depend on us just to stay online.
-                </p>
-              </div>
-            </FadeIn>
-
-            <FadeIn delay={0.12}>
-              <div className="border border-white/8 p-7 md:p-9" style={{ backgroundColor: "rgba(255,255,255,0.015)" }}>
-                <p className="text-white/55 text-[15px] leading-[1.85] mb-8" style={{ fontFamily: "'Barlow', sans-serif" }}>
-                  You own <strong className="text-white/80">100% of your digital assets</strong>. Once the system is built, the official Meta WhatsApp API credentials, server tokens, and database accounts belong entirely to you. We provide <strong className="text-white/80">step-by-step video handoffs</strong> so your business is never dependent on us just to stay online.
-                </p>
-
-                <div className="space-y-3">
-                  {[
-                    "All source code delivered in open, standard formats",
-                    "WhatsApp API credentials registered under your business",
-                    "Server & database logins transferred to your accounts",
-                    "Detailed video walkthroughs for every system component",
-                    "Documentation so any developer can maintain the system",
-                    "No recurring licence fees tied to our platform",
-                  ].map((item, i) => (
-                    <motion.div key={i}
-                      className="flex items-center gap-3 border border-white/5 px-5 py-3"
-                      style={{ backgroundColor: "rgba(52,211,153,0.015)" }}
-                      whileHover={{ borderColor: "rgba(52,211,153,0.15)", x: 3 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <CheckCircle size={15} className="shrink-0" style={{ color: "#34d399" }} />
-                      <span className="text-white/50 text-[13px]" style={{ fontFamily: "'Barlow', sans-serif" }}>{item}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </FadeIn>
-          </div>
-        </div>
-      </section>
-
-
-      {/* ════════════════════════════════════════════════════
-          SECTION 4 — Direct Access Support Promise
-          ════════════════════════════════════════════════════ */}
-      <section className="py-20 lg:py-28 border-t border-white/5" style={{ backgroundColor: "rgba(167,139,250,0.015)" }}>
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="grid lg:grid-cols-[1fr_1.3fr] gap-14 items-start">
-            <FadeIn>
-              <div className="lg:sticky lg:top-28">
-                <div className="w-12 h-12 flex items-center justify-center border border-white/10 mb-5" style={{ backgroundColor: "rgba(167,139,250,0.06)" }}>
-                  <Headphones size={22} style={{ color: "#a78bfa" }} />
-                </div>
-                <span className="text-[10px] font-bold tracking-[0.22em] uppercase mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#a78bfa" }}>Guarantee #4</span>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                  The "Direct Access" <span style={{ color: "#a78bfa" }}>Support Promise</span>
-                </h2>
-                <p className="text-white/35 text-sm leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>
-                  No bots. No ticket queues. Talk to the people actually writing your code.
-                </p>
-              </div>
-            </FadeIn>
-
-            <FadeIn delay={0.12}>
-              <div className="border border-white/8 p-7 md:p-9" style={{ backgroundColor: "rgba(255,255,255,0.015)" }}>
-                <p className="text-white/55 text-[15px] leading-[1.85] mb-8" style={{ fontFamily: "'Barlow', sans-serif" }}>
-                  Large agencies hide behind slow support tickets and robotic email threads. When you partner with us, you get a <strong className="text-white/80">dedicated WhatsApp support group</strong> directly connected to the 2–3 developers actually writing your code. We provide <strong className="text-white/80">human updates within hours</strong>, not days.
-                </p>
-
-                {/* How it works — 3 cards */}
-                <div className="grid sm:grid-cols-3 gap-3">
-                  {[
-                    { icon: MessageSquare, title: "WhatsApp Group", desc: "Dedicated project group with your entire dev team", accent: "#a78bfa" },
-                    { icon: Users, title: "Real Humans", desc: "Direct access to the developers building your system", accent: "#a78bfa" },
-                    { icon: Smartphone, title: "Hours, Not Days", desc: "Updates and responses within working hours, same day", accent: "#a78bfa" },
-                  ].map((card) => {
-                    const Icon = card.icon;
-                    return (
-                      <motion.div key={card.title}
-                        className="border border-white/6 p-5 text-center"
-                        style={{ backgroundColor: "rgba(167,139,250,0.02)" }}
-                        whileHover={{ borderColor: "rgba(167,139,250,0.2)", y: -3 }}
-                        transition={{ duration: 0.25 }}
-                      >
-                        <Icon size={20} className="mx-auto mb-3" style={{ color: card.accent, opacity: 0.6 }} />
-                        <div className="text-xs font-black tracking-wider uppercase mb-1.5" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{card.title}</div>
-                        <div className="text-white/30 text-[11px] leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>{card.desc}</div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </div>
-            </FadeIn>
-          </div>
-        </div>
-      </section>
-
-
-      {/* ════════════════════════════════════════════════════
-          SECTION 5 — Open Data Privacy Commitment
-          ════════════════════════════════════════════════════ */}
-      <section className="py-20 lg:py-28 border-t border-white/5">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="grid lg:grid-cols-[1fr_1.3fr] gap-14 items-start">
-            <FadeIn>
-              <div className="lg:sticky lg:top-28">
-                <div className="w-12 h-12 flex items-center justify-center border border-white/10 mb-5" style={{ backgroundColor: "rgba(244,114,182,0.06)" }}>
-                  <Lock size={22} style={{ color: "#f472b6" }} />
-                </div>
-                <span className="text-[10px] font-bold tracking-[0.22em] uppercase mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#f472b6" }}>Guarantee #5</span>
-                <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                  Open Data <span style={{ color: "#f472b6" }}>Privacy Commitment</span>
-                </h2>
-                <p className="text-white/35 text-sm leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>
-                  Your customer conversations and business data are never used to train public AI models.
-                </p>
-              </div>
-            </FadeIn>
-
-            <FadeIn delay={0.12}>
-              <div className="border border-white/8 p-7 md:p-9" style={{ backgroundColor: "rgba(255,255,255,0.015)" }}>
-                <p className="text-white/55 text-[15px] leading-[1.85] mb-8" style={{ fontFamily: "'Barlow', sans-serif" }}>
-                  Your customer data is <strong className="text-white/80">never used to train public models</strong>. We utilise secure enterprise APIs (like OpenAI Enterprise and Meta Business Developer tools) ensuring that your leads, conversations, and business data remain <strong className="text-white/80">strictly confidential and private to your firm</strong>.
-                </p>
-
-                <div className="border border-white/6 p-6" style={{ backgroundColor: "rgba(244,114,182,0.02)" }}>
-                  <div className="text-xs font-black tracking-[0.18em] uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#f472b6" }}>
-                    Our Data Promise
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {[
-                      "Zero data used for public AI training",
-                      "Enterprise-grade API integrations only",
-                      "Encrypted at rest and in transit",
-                      "Regular access audits and logging",
-                      "Data deletion on contract termination",
-                      "GDPR-aligned data handling practices",
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center gap-2.5">
-                        <div className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: "#f472b6" }} />
-                        <span className="text-white/40 text-[13px]" style={{ fontFamily: "'Barlow', sans-serif" }}>{item}</span>
-                      </div>
                     ))}
                   </div>
                 </div>
               </div>
             </FadeIn>
+
+            {/* Guarantee 2 */}
+            <FadeIn delay={0.12}>
+              <div className="flex flex-col h-full">
+                <div className="mb-8">
+                  <div className="w-12 h-12 flex items-center justify-center border border-white/10 mb-5" style={{ backgroundColor: "rgba(96,200,255,0.06)" }}>
+                    <Server size={22} style={{ color: "#60c8ff" }} />
+                  </div>
+                  <span className="text-[10px] font-bold tracking-[0.22em] uppercase mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#60c8ff" }}>Guarantee #2</span>
+                  <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                    Technical Transparency & <span style={{ color: "#60c8ff" }}>System Safety</span>
+                  </h2>
+                  <p className="text-white/35 text-sm leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>
+                    Your current systems keep running. Our automation works alongside, never against, what you already have.
+                  </p>
+                </div>
+                <div className="border border-white/8 p-7 md:p-9 flex-1" style={{ backgroundColor: "rgba(255,255,255,0.015)" }}>
+                  <p className="text-white/55 text-[15px] leading-[1.85] mb-8" style={{ fontFamily: "'Barlow', sans-serif" }}>
+                    We practise <strong className="text-white/80">non‑destructive integration</strong>. Our AI agents, WhatsApp automations, and workflow systems act as a smart layer <em>on top</em> of your current setup. We do not alter your core databases without full offline backups, and we use <strong className="text-white/80">secure middleware</strong> (n8n / Make) to ensure your data stays fully protected.
+                  </p>
+                  <div className="grid xl:grid-cols-2 gap-3">
+                    {[
+                      { icon: Database, text: "Full offline backups before any integration" },
+                      { icon: Server, text: "Secure middleware — never direct database writes" },
+                      { icon: CloudOff, text: "Kill-switch to instantly disable any automation" },
+                      { icon: Shield, text: "Staging environment tested before going live" },
+                    ].map((item, i) => {
+                      const Icon = item.icon;
+                      return (
+                        <motion.div key={i}
+                          className="flex items-start gap-3 border border-white/5 px-4 py-3.5"
+                          style={{ backgroundColor: "rgba(96,200,255,0.02)" }}
+                          whileHover={{ borderColor: "rgba(96,200,255,0.15)" }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <Icon size={15} className="mt-0.5 shrink-0" style={{ color: "#60c8ff", opacity: 0.6 }} />
+                          <span className="text-white/45 text-[13px] leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>{item.text}</span>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+
+            {/* Guarantee 3 */}
+            <FadeIn>
+              <div className="flex flex-col h-full">
+                <div className="mb-8">
+                  <div className="w-12 h-12 flex items-center justify-center border border-white/10 mb-5" style={{ backgroundColor: "rgba(52,211,153,0.06)" }}>
+                    <Key size={22} style={{ color: "#34d399" }} />
+                  </div>
+                  <span className="text-[10px] font-bold tracking-[0.22em] uppercase mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#34d399" }}>Guarantee #3</span>
+                  <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                    100% Ownership & <span style={{ color: "#34d399" }}>No Vendor Lock‑In</span>
+                  </h2>
+                  <p className="text-white/35 text-sm leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>
+                    Your business should never depend on us just to stay online.
+                  </p>
+                </div>
+                <div className="border border-white/8 p-7 md:p-9 flex-1" style={{ backgroundColor: "rgba(255,255,255,0.015)" }}>
+                  <p className="text-white/55 text-[15px] leading-[1.85] mb-8" style={{ fontFamily: "'Barlow', sans-serif" }}>
+                    You own <strong className="text-white/80">100% of your digital assets</strong>. Once the system is built, the official Meta WhatsApp API credentials, server tokens, and database accounts belong entirely to you. We provide <strong className="text-white/80">step-by-step video handoffs</strong> so your business is never dependent on us just to stay online.
+                  </p>
+                  <div className="space-y-3">
+                    {[
+                      "All source code delivered in open, standard formats",
+                      "WhatsApp API credentials registered under your business",
+                      "Server & database logins transferred to your accounts",
+                      "Detailed video walkthroughs for every system component",
+                      "Documentation so any developer can maintain the system",
+                      "No recurring licence fees tied to our platform",
+                    ].map((item, i) => (
+                      <motion.div key={i}
+                        className="flex items-center gap-3 border border-white/5 px-5 py-3"
+                        style={{ backgroundColor: "rgba(52,211,153,0.015)" }}
+                        whileHover={{ borderColor: "rgba(52,211,153,0.15)", x: 3 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <CheckCircle size={15} className="shrink-0" style={{ color: "#34d399" }} />
+                        <span className="text-white/50 text-[13px]" style={{ fontFamily: "'Barlow', sans-serif" }}>{item}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+
+            {/* Guarantee 4 */}
+            <FadeIn delay={0.12}>
+              <div className="flex flex-col h-full">
+                <div className="mb-8">
+                  <div className="w-12 h-12 flex items-center justify-center border border-white/10 mb-5" style={{ backgroundColor: "rgba(167,139,250,0.06)" }}>
+                    <Headphones size={22} style={{ color: "#a78bfa" }} />
+                  </div>
+                  <span className="text-[10px] font-bold tracking-[0.22em] uppercase mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#a78bfa" }}>Guarantee #4</span>
+                  <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                    The "Direct Access" <span style={{ color: "#a78bfa" }}>Support Promise</span>
+                  </h2>
+                  <p className="text-white/35 text-sm leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>
+                    No bots. No ticket queues. Talk to the people actually writing your code.
+                  </p>
+                </div>
+                <div className="border border-white/8 p-7 md:p-9 flex-1" style={{ backgroundColor: "rgba(255,255,255,0.015)" }}>
+                  <p className="text-white/55 text-[15px] leading-[1.85] mb-8" style={{ fontFamily: "'Barlow', sans-serif" }}>
+                    Large agencies hide behind slow support tickets and robotic email threads. When you partner with us, you get a <strong className="text-white/80">dedicated WhatsApp support group</strong> directly connected to the 2–3 developers actually writing your code. We provide <strong className="text-white/80">human updates within hours</strong>, not days.
+                  </p>
+                  <div className="grid xl:grid-cols-3 gap-3">
+                    {[
+                      { icon: MessageSquare, title: "WhatsApp Group", desc: "Dedicated project group with your entire dev team", accent: "#a78bfa" },
+                      { icon: Users, title: "Real Humans", desc: "Direct access to the developers building your system", accent: "#a78bfa" },
+                      { icon: Smartphone, title: "Hours, Not Days", desc: "Updates and responses within working hours, same day", accent: "#a78bfa" },
+                    ].map((card) => {
+                      const Icon = card.icon;
+                      return (
+                        <motion.div key={card.title}
+                          className="border border-white/6 p-5 text-center"
+                          style={{ backgroundColor: "rgba(167,139,250,0.02)" }}
+                          whileHover={{ borderColor: "rgba(167,139,250,0.2)", y: -3 }}
+                          transition={{ duration: 0.25 }}
+                        >
+                          <Icon size={20} className="mx-auto mb-3" style={{ color: card.accent, opacity: 0.6 }} />
+                          <div className="text-xs font-black tracking-wider uppercase mb-1.5" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{card.title}</div>
+                          <div className="text-white/30 text-[11px] leading-relaxed" style={{ fontFamily: "'Barlow', sans-serif" }}>{card.desc}</div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+
+            {/* Guarantee 5 (Centered if odd) */}
+            <FadeIn className="lg:col-span-2 flex justify-center mt-6">
+              <div className="flex flex-col h-full w-full max-w-3xl">
+                <div className="mb-8 text-center">
+                  <div className="w-12 h-12 flex items-center justify-center border border-white/10 mb-5 mx-auto" style={{ backgroundColor: "rgba(244,114,182,0.06)" }}>
+                    <Lock size={22} style={{ color: "#f472b6" }} />
+                  </div>
+                  <span className="text-[10px] font-bold tracking-[0.22em] uppercase mb-2 block" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#f472b6" }}>Guarantee #5</span>
+                  <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                    Open Data <span style={{ color: "#f472b6" }}>Privacy Commitment</span>
+                  </h2>
+                  <p className="text-white/35 text-sm leading-relaxed max-w-md mx-auto" style={{ fontFamily: "'Barlow', sans-serif" }}>
+                    Your customer conversations and business data are never used to train public AI models.
+                  </p>
+                </div>
+                <div className="border border-white/8 p-7 md:p-9 flex-1" style={{ backgroundColor: "rgba(255,255,255,0.015)" }}>
+                  <p className="text-white/55 text-[15px] leading-[1.85] mb-8 text-center" style={{ fontFamily: "'Barlow', sans-serif" }}>
+                    Your customer data is <strong className="text-white/80">never used to train public models</strong>. We utilise secure enterprise APIs (like OpenAI Enterprise and Meta Business Developer tools) ensuring that your leads, conversations, and business data remain <strong className="text-white/80">strictly confidential and private to your firm</strong>.
+                  </p>
+                  <div className="border border-white/6 p-6 max-w-xl mx-auto" style={{ backgroundColor: "rgba(244,114,182,0.02)" }}>
+                    <div className="text-xs font-black tracking-[0.18em] uppercase mb-4 text-center" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: "#f472b6" }}>
+                      Our Data Promise
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
+                      {[
+                        "Zero data used for public AI training",
+                        "Enterprise-grade API integrations only",
+                        "Encrypted at rest and in transit",
+                        "Regular access audits and logging",
+                        "Data deletion on contract termination",
+                        "GDPR-aligned data handling practices",
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center gap-2.5">
+                          <div className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: "#f472b6" }} />
+                          <span className="text-white/40 text-[13px]" style={{ fontFamily: "'Barlow', sans-serif" }}>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+
           </div>
         </div>
       </section>
-
 
       {/* ════════════════════════════════════════════════════
           FINAL CTA — Still skeptical? Good.

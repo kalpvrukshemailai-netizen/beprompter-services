@@ -134,7 +134,7 @@ export function ContactPage() {
                           type="email"
                           value={form.email}
                           onChange={(e) => setForm({ ...form, email: e.target.value })}
-                          placeholder="kavyashah@beprompter.in"
+                          placeholder="sales@beprompter.in"
                           className="w-full border border-[#e0e0e0] px-4 py-3 text-sm outline-none focus:border-black transition-colors bg-white text-black"
                           style={{ fontFamily: "'Inter', sans-serif" }}
                         />

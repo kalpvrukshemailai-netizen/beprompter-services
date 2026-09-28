@@ -37,9 +37,8 @@ const organizationSchema = {
     availableLanguage: ["English"],
   },
   sameAs: [
-    "https://www.linkedin.com/company/beprompter",
-    "https://twitter.com/beprompter",
-    "https://www.instagram.com/beprompter",
+    "https://in.linkedin.com/company/beprompter",
+    "https://www.instagram.com/beprompter.ai/",
   ],
   areaServed: "Worldwide",
   knowsAbout: [

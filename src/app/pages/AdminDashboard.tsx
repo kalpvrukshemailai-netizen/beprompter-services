@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { LogOut, User, ShieldAlert, Users, Shield, RefreshCw, Mail, ArrowLeft, FileText, Upload, FileUp, Trash2 } from "lucide-react";
+import { LogOut, User, ShieldAlert, Users, Shield, RefreshCw, Mail, ArrowLeft, FileText, Upload, FileUp, Trash2, X } from "lucide-react";
 import { supabase, Profile, UserRole } from "@/lib/supabase";
 import { DashboardLayout } from "@/app/components/DashboardLayout";
+import Papa from "papaparse";
 
 export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -85,8 +86,24 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
   };
 
   const fetchCrmLeads = async () => {
-    const { data } = await supabase.from("crm_leads").select("*").order("created_at", { ascending: false });
-    if (data) setCrmLeads(data);
+    let allLeads: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data } = await supabase.from("crm_leads")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      
+      if (data && data.length > 0) {
+        allLeads = [...allLeads, ...data];
+        if (data.length < pageSize) break;
+      } else {
+        break;
+      }
+      page++;
+    }
+    setCrmLeads(allLeads);
   };
 
   const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,50 +112,199 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
     
     setUploadingCsv(true);
     const text = await file.text();
-    const rows = text.split('\n').filter(row => row.trim());
-    if (rows.length < 2) {
-      setUploadingCsv(false);
-      return;
-    }
     
-    // Expected columns: google,Name,ratin,review,Firm,Address,Phone,website,City
-    const newLeads = [];
-    for (let i = 1; i < rows.length; i++) {
-      let cols = [];
-      let current = "";
-      let inQuotes = false;
-      for (let char of rows[i]) {
-        if (char === '"') inQuotes = !inQuotes;
-        else if (char === ',' && !inQuotes) { cols.push(current.trim()); current = ""; }
-        else current += char;
+    Papa.parse(text, {
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const rows = results.data as string[][];
+        
+        // Find the actual header row (row with most columns, usually > 5)
+        let headerIndex = 0;
+        let maxCols = 0;
+        for (let i = 0; i < Math.min(20, rows.length); i++) {
+            const nonNullCols = rows[i].filter(c => c && c.trim() !== '').length;
+            if (nonNullCols > maxCols) {
+                maxCols = nonNullCols;
+                headerIndex = i;
+            }
+        }
+        
+        const headers = rows[headerIndex].map(h => h.trim());
+        const dataRows = rows.slice(headerIndex + 1);
+        
+        const normalize = (str?: string | null) => str ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : null;
+        const seenNames = new Set(crmLeads.map(l => normalize(l.name)).filter(Boolean));
+        const seenPhones = new Set(crmLeads.map(l => normalize(l.phone)).filter(Boolean));
+        const seenWebsites = new Set(crmLeads.map(l => normalize(l.website)).filter(Boolean));
+        const seenEmails = new Set(crmLeads.map(l => {
+          const emailKey = Object.keys(l.dynamic_data || {}).find(k => k.toLowerCase().includes('email'));
+          return emailKey ? normalize(l.dynamic_data[emailKey]) : null;
+        }).filter(Boolean));
+
+        const newLeads = [];
+        for (const row of dataRows) {
+            const dynamicData: Record<string, string> = {};
+            let hasData = false;
+            headers.forEach((header, index) => {
+                const val = row[index]?.trim();
+                if (header && val) {
+                    dynamicData[header] = val;
+                    hasData = true;
+                }
+            });
+            
+            if (!hasData) continue;
+            
+            const nameKey = headers.find(h => h.toLowerCase().includes('name') || h.toLowerCase().includes('business') || h.toLowerCase().includes('company') || h.toLowerCase().includes('lead') && !h.toLowerCase().includes('category'));
+            const name = nameKey ? dynamicData[nameKey] : "Unknown";
+            
+            const phoneKey = headers.find(h => h.toLowerCase() === 'phone' || h.toLowerCase().includes('mobile') || h.toLowerCase().includes('office'));
+            const phone = phoneKey ? dynamicData[phoneKey] : null;
+            
+            const cityKey = headers.find(h => {
+                const lh = h.toLowerCase();
+                return (lh.includes('city') || lh.includes('location') || lh.includes('address') || lh.includes('state') || lh.includes('suburb')) && !lh.includes('email');
+            });
+            const city = cityKey ? dynamicData[cityKey] : null;
+            
+            const websiteKey = headers.find(h => h.toLowerCase().includes('website') || h.toLowerCase().includes('url'));
+            const website = websiteKey ? dynamicData[websiteKey] : null;
+            
+            const ratingKey = headers.find(h => h.toLowerCase().includes('rating'));
+            const rating = ratingKey ? dynamicData[ratingKey] : null;
+            
+            const reviewsKey = headers.find(h => h.toLowerCase().includes('review'));
+            const reviews = reviewsKey ? dynamicData[reviewsKey] : null;
+            
+            const emailKey = headers.find(h => h.toLowerCase().includes('email'));
+            const email = emailKey ? dynamicData[emailKey] : null;
+
+            const normName = normalize(name);
+            const normPhone = normalize(phone);
+            const normWebsite = normalize(website);
+            const normEmail = normalize(email);
+            
+            if (
+              (normName && seenNames.has(normName)) ||
+              (normPhone && seenPhones.has(normPhone)) ||
+              (normWebsite && seenWebsites.has(normWebsite)) ||
+              (normEmail && seenEmails.has(normEmail))
+            ) {
+              continue;
+            }
+
+            if (normName) seenNames.add(normName);
+            if (normPhone) seenPhones.add(normPhone);
+            if (normWebsite) seenWebsites.add(normWebsite);
+            if (normEmail) seenEmails.add(normEmail);
+
+            newLeads.push({
+                name: name || "Unknown",
+                phone: phone || null,
+                city: city || null,
+                website: website || null,
+                rating: rating || null,
+                reviews: reviews || null,
+                source_file: file.name,
+                dynamic_data: dynamicData
+            });
+        }
+        
+        if (newLeads.length > 0) {
+          // Chunking inserts to avoid URL limits if the file is massive
+          for (let i = 0; i < newLeads.length; i += 100) {
+            await supabase.from("crm_leads").insert(newLeads.slice(i, i + 100));
+          }
+          await fetchCrmLeads();
+        }
+        setUploadingCsv(false);
+        e.target.value = ''; // Reset input
+      },
+      error: (error) => {
+        console.error("CSV Parse Error:", error);
+        alert("Failed to parse CSV: " + error.message);
+        setUploadingCsv(false);
+        e.target.value = ''; // Reset input
       }
-      cols.push(current.trim());
+    });
+  };
+
+  const handleRemoveDuplicates = async () => {
+    if (!confirm("This will permanently remove duplicate leads (checking by Name, Phone, Email, or Website) keeping only the oldest record. Continue?")) return;
+    
+    setUploadingCsv(true); // Reuse this state for loading indicator
+    
+    const normalize = (str?: string | null) => str ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : null;
+    
+    const seenNames = new Set();
+    const seenPhones = new Set();
+    const seenWebsites = new Set();
+    const seenEmails = new Set();
+    
+    const duplicatesToDelete: string[] = [];
+    
+    // Sort leads by created_at so we keep the oldest ones
+    const sortedLeads = [...crmLeads].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    
+    for (const lead of sortedLeads) {
+      const emailKey = Object.keys(lead.dynamic_data || {}).find(k => k.toLowerCase().includes('email'));
+      const email = emailKey ? lead.dynamic_data[emailKey] : null;
       
-      if (cols.length >= 8 && cols[1]) { // Ensure it's not a completely empty/invalid row
-        newLeads.push({
-          google_link: cols[0] || null,
-          name: cols[1] || "Unknown",
-          rating: cols[2] || null,
-          reviews: cols[3] || null,
-          firm_type: cols[4] || null,
-          address: cols[5] || null,
-          phone: cols[6] || null,
-          website: cols[7] || null,
-          city: cols[8] || null,
-          source_file: file.name,
-        });
+      const normName = normalize(lead.name);
+      const normPhone = normalize(lead.phone);
+      const normWebsite = normalize(lead.website);
+      const normEmail = normalize(email);
+      
+      const isDuplicate = (normName && seenNames.has(normName)) || 
+                          (normPhone && seenPhones.has(normPhone)) || 
+                          (normWebsite && seenWebsites.has(normWebsite)) || 
+                          (normEmail && seenEmails.has(normEmail));
+                          
+      if (isDuplicate) {
+        duplicatesToDelete.push(lead.id);
+      } else {
+        if (normName) seenNames.add(normName);
+        if (normPhone) seenPhones.add(normPhone);
+        if (normWebsite) seenWebsites.add(normWebsite);
+        if (normEmail) seenEmails.add(normEmail);
       }
     }
     
-    if (newLeads.length > 0) {
-      // Chunking inserts to avoid URL limits if the file is massive
-      for (let i = 0; i < newLeads.length; i += 100) {
-        await supabase.from("crm_leads").insert(newLeads.slice(i, i + 100));
+    if (duplicatesToDelete.length > 0) {
+      for (let i = 0; i < duplicatesToDelete.length; i += 100) {
+        await supabase.from("crm_leads").delete().in("id", duplicatesToDelete.slice(i, i + 100));
       }
       await fetchCrmLeads();
+      alert(`Successfully removed ${duplicatesToDelete.length} duplicate leads!`);
+    } else {
+      alert("No duplicates found.");
     }
+    
     setUploadingCsv(false);
-    e.target.value = ''; // Reset input
+  };
+
+  const handleDeleteFileLeads = async () => {
+    if (!fileFilter) return;
+    if (!confirm(`Are you sure you want to completely delete all leads from "${fileFilter}"? This cannot be undone.`)) return;
+    
+    setUpdatingId('delete-file');
+    try {
+      // Chunking deletion
+      const fileLeads = crmLeads.filter(l => l.source_file === fileFilter).map(l => l.id);
+      for (let i = 0; i < fileLeads.length; i += 100) {
+        await supabase.from("crm_leads").delete().in("id", fileLeads.slice(i, i + 100));
+      }
+      setFileFilter("");
+      setCityFilter("");
+      setBulkAssignRep("");
+      await fetchCrmLeads();
+      alert("Successfully deleted all leads from that file.");
+    } catch (err: any) {
+      console.error("Delete file failed:", err);
+      alert("Failed to delete leads: " + err.message);
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   const handleBulkAssign = async () => {
@@ -169,9 +335,35 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
     }
   };
 
-  const handleAssignCrmLead = async (leadId: string, userId: string) => {
+  const handleBulkUnassign = async () => {
+    let filteredLeads = crmLeads;
+    if (fileFilter) filteredLeads = filteredLeads.filter(l => l.source_file === fileFilter);
+    if (cityFilter) filteredLeads = filteredLeads.filter(l => (l.city || "").toLowerCase().includes(cityFilter.toLowerCase()));
+    
+    const assignedIds = filteredLeads.filter(l => l.assigned_to).map(l => l.id);
+    
+    if (assignedIds.length === 0) return;
+    
+    if (!window.confirm(`Are you sure you want to unassign ${assignedIds.length} leads?`)) return;
+    
+    setUpdatingId('bulk-unassign');
+    try {
+      for (let i = 0; i < assignedIds.length; i += 100) {
+        const { error } = await supabase.from("crm_leads").update({ assigned_to: null }).in("id", assignedIds.slice(i, i + 100));
+        if (error) throw error;
+      }
+      await fetchCrmLeads();
+    } catch (err: any) {
+      console.error("Bulk unassign failed:", err);
+      alert("Failed to unassign leads: " + err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleAssignCrmLead = async (leadId: string, userId: string | null) => {
     setUpdatingId(`assign-crm-${leadId}`);
-    const { error } = await supabase.from("crm_leads").update({ assigned_to: userId }).eq("id", leadId);
+    const { error } = await supabase.from("crm_leads").update({ assigned_to: userId || null }).eq("id", leadId);
     if (!error) {
       await fetchCrmLeads();
     }
@@ -412,7 +604,17 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
               Sales CRM Distribution
             </h2>
           </div>
-          <div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleRemoveDuplicates}
+              disabled={uploadingCsv}
+              className={`
+              flex items-center gap-2 bg-[#f87171]/10 hover:bg-[#f87171]/20 border border-[#f87171]/30 
+              text-[#f87171] px-4 py-2 text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer rounded
+              ${uploadingCsv ? 'opacity-50 pointer-events-none' : ''}
+            `} style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+              <Trash2 size={14} /> Remove Duplicates
+            </button>
             <label className={`
               flex items-center gap-2 bg-[#fbbf24]/10 hover:bg-[#fbbf24]/20 border border-[#fbbf24]/30 
               text-[#fbbf24] px-4 py-2 text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer rounded
@@ -461,6 +663,13 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
                 >
                   <ArrowLeft size={14} /> Back to Files
                 </button>
+                <button 
+                  onClick={handleDeleteFileLeads}
+                  disabled={updatingId === 'delete-file'}
+                  className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs px-3 py-2 outline-none rounded transition-colors w-full md:w-auto"
+                >
+                  <Trash2 size={14} /> {updatingId === 'delete-file' ? 'Deleting...' : 'Delete File'}
+                </button>
                 <div className="flex flex-col">
                   <label className="text-[#fbbf24]/70 text-[10px] uppercase tracking-widest font-bold mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Current File</label>
                   <div className="bg-black/30 border border-[#fbbf24]/30 text-[#fbbf24] font-bold text-xs px-3 py-2 outline-none rounded transition-colors w-full md:w-48 truncate flex items-center gap-2" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -477,7 +686,16 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
                 style={{ fontFamily: "'Inter', sans-serif" }}
               >
                 <option value="">All Cities</option>
-                {Array.from(new Set(crmLeads.map(l => l.city).filter(Boolean))).sort().map(c => (
+                {Array.from(new Set(crmLeads
+                  .filter(l => !fileFilter || l.source_file === fileFilter)
+                  .map(l => l.city)
+                  .filter(c => {
+                    if (!c) return false;
+                    if (c.includes('@')) return false;
+                    if (/\d{4,}/.test(c)) return false;
+                    return true;
+                  })
+                )).sort().map(c => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
@@ -505,6 +723,14 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
                 >
                   {updatingId === 'bulk-assign' ? 'Assigning...' : 'Assign All Unassigned'}
                 </button>
+                <button
+                  onClick={handleBulkUnassign}
+                  disabled={updatingId === 'bulk-unassign'}
+                  className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-4 py-2 text-xs font-bold uppercase tracking-widest transition-colors rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
+                >
+                  {updatingId === 'bulk-unassign' ? 'Unassigning...' : 'Unassign All'}
+                </button>
               </div>
             </div>
           </div>
@@ -524,51 +750,84 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[#fbbf24]/20" style={{ backgroundColor: "rgba(251,191,36,0.05)" }}>
-                  <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Company</th>
-                  <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Contact Info</th>
-                  <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Rating</th>
-                  <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Status</th>
-                  <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest text-right" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Assign To Sales Rep</th>
-                </tr>
+                {(() => {
+                  let filtered = crmLeads;
+                  if (fileFilter) filtered = filtered.filter(l => l.source_file === fileFilter);
+                  if (cityFilter) filtered = filtered.filter(l => (l.city || "").toLowerCase().includes(cityFilter.toLowerCase()));
+                  
+                  const allKeys = new Set<string>();
+                  for (const l of filtered.slice(0, 100)) {
+                    if (l.dynamic_data) {
+                      Object.keys(l.dynamic_data).forEach(k => {
+                        if (k !== 'Row COLOUR LEGEND' && k !== '#' && k !== 'Raw Lead' && !k.toLowerCase().includes('email')) {
+                          allKeys.add(k);
+                        }
+                      });
+                    }
+                  }
+                  const dynamicKeys = Array.from(allKeys).slice(0, 5);
+
+                  return (
+                    <tr className="border-b border-[#fbbf24]/20" style={{ backgroundColor: "rgba(251,191,36,0.05)" }}>
+                      <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Lead</th>
+                      {dynamicKeys.map(k => (
+                        <th key={k} className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest max-w-[150px] truncate" style={{ fontFamily: "'Barlow Condensed', sans-serif" }} title={k}>{k}</th>
+                      ))}
+                      <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Email</th>
+                      <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Status</th>
+                      <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest text-right" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Assign To Sales Rep</th>
+                    </tr>
+                  );
+                })()}
               </thead>
               <tbody>
                 {(() => {
                   let filtered = crmLeads;
                   if (fileFilter) filtered = filtered.filter(l => l.source_file === fileFilter);
                   if (cityFilter) filtered = filtered.filter(l => (l.city || "").toLowerCase().includes(cityFilter.toLowerCase()));
+                  
+                  const allKeys = new Set<string>();
+                  for (const l of filtered.slice(0, 100)) {
+                    if (l.dynamic_data) {
+                      Object.keys(l.dynamic_data).forEach(k => {
+                        if (k !== 'Row COLOUR LEGEND' && k !== '#' && k !== 'Raw Lead' && !k.toLowerCase().includes('email')) {
+                          allKeys.add(k);
+                        }
+                      });
+                    }
+                  }
+                  const dynamicKeys = Array.from(allKeys).slice(0, 5);
+
                   return filtered.map((l) => {
                     const salesReps = users.filter(u => u.role === "sales");
                     return (
                     <tr key={l.id} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors group">
                       <td className="p-4">
-                        <p className="text-white/90 text-sm font-semibold" style={{ fontFamily: "'Inter', sans-serif" }}>{l.name}</p>
-                        {l.firm_type && <p className="text-white/40 text-[10px] uppercase tracking-wider mt-0.5">{l.firm_type}</p>}
+                        <p className="text-white/90 text-sm font-semibold max-w-[200px] truncate" style={{ fontFamily: "'Inter', sans-serif" }}>{l.name}</p>
+                        {l.phone && <p className="text-white/60 text-xs mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>{l.phone}</p>}
                         {l.website && (
                           <a href={l.website.startsWith('http') ? l.website : `https://${l.website}`} target="_blank" rel="noreferrer" className="text-[#60c8ff] text-xs hover:underline mt-1 inline-block" style={{ fontFamily: "'Inter', sans-serif" }}>
                             Website
                           </a>
                         )}
                       </td>
+                      {dynamicKeys.map(k => (
+                        <td key={k} className="p-4">
+                          <p className="text-white/60 text-xs max-w-[150px] truncate" style={{ fontFamily: "'Inter', sans-serif" }} title={l.dynamic_data?.[k]}>
+                            {l.dynamic_data?.[k] || "—"}
+                          </p>
+                        </td>
+                      ))}
                       <td className="p-4">
-                        <p className="text-white/80 text-xs mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
-                          {l.phone || "No phone"}
-                        </p>
-                        <p className="text-white/60 text-xs max-w-[200px]" style={{ fontFamily: "'Inter', sans-serif" }}>
-                          {l.address || "No address"}
-                        </p>
-                        {l.city && (
-                          <p className="text-[#fbbf24]/80 text-[10px] uppercase tracking-wider mt-1 font-bold">{l.city}</p>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-1 mb-1">
-                          <span className="text-white/90 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>⭐ {l.rating || "-"}</span>
-                          <span className="text-white/40 text-xs ml-1" style={{ fontFamily: "'Inter', sans-serif" }}>({String(l.reviews || "0").replace(/\D/g, '')})</span>
-                        </div>
-                        {l.google_link && (
-                          <a href={l.google_link} target="_blank" rel="noreferrer" className="text-[#60c8ff] text-[10px] hover:underline" style={{ fontFamily: "'Inter', sans-serif" }}>Google Maps</a>
-                        )}
+                        {(() => {
+                          const emailKey = l.dynamic_data ? Object.keys(l.dynamic_data).find(k => k.toLowerCase().includes('email')) : null;
+                          const email = emailKey ? l.dynamic_data[emailKey] : null;
+                          return email ? (
+                            <p className="text-white/80 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>{email}</p>
+                          ) : (
+                            <span className="text-white/30 text-xs">—</span>
+                          );
+                        })()}
                       </td>
                       <td className="p-4">
                         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider
@@ -581,18 +840,30 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
                         {salesReps.length === 0 ? (
                           <span className="text-white/30 text-xs">No sales reps available</span>
                         ) : (
-                          <select
-                            value={l.assigned_to || ""}
-                            onChange={(e) => handleAssignCrmLead(l.id, e.target.value)}
-                            disabled={updatingId === `assign-crm-${l.id}`}
-                            className="bg-black/50 border border-[#fbbf24]/30 text-white text-xs px-3 py-1.5 outline-none rounded transition-colors"
-                            style={{ fontFamily: "'Inter', sans-serif" }}
-                          >
-                            <option value="">-- Unassigned --</option>
-                            {salesReps.map(rep => (
-                              <option key={rep.id} value={rep.id}>{rep.full_name}</option>
-                            ))}
-                          </select>
+                          <div className="flex items-center justify-end gap-2">
+                            <select
+                              value={l.assigned_to || ""}
+                              onChange={(e) => handleAssignCrmLead(l.id, e.target.value)}
+                              disabled={updatingId === `assign-crm-${l.id}`}
+                              className="bg-black/50 border border-[#fbbf24]/30 text-white text-xs px-3 py-1.5 outline-none rounded transition-colors"
+                              style={{ fontFamily: "'Inter', sans-serif" }}
+                            >
+                              <option value="">-- Unassigned --</option>
+                              {salesReps.map(rep => (
+                                <option key={rep.id} value={rep.id}>{rep.full_name}</option>
+                              ))}
+                            </select>
+                            {l.assigned_to && (
+                              <button
+                                onClick={() => handleAssignCrmLead(l.id, null)}
+                                disabled={updatingId === `assign-crm-${l.id}`}
+                                className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                title="Unassign"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>

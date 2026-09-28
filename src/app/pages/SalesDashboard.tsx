@@ -1,10 +1,59 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { LogOut, Phone, Users, CheckCircle, Clock, X, MapPin, Globe, Star, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { LogOut, Phone, Users, CheckCircle, Check, Copy, Clock, X, MapPin, Globe, Star, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase, Profile } from "@/lib/supabase";
 import { StatCard } from "@/app/components/ui/StatCard";
 import { DashboardLayout } from "@/app/components/DashboardLayout";
 
+const CopyableText = ({ text }: { text: string }) => {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = async (e?: React.MouseEvent | React.TouchEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (!text || text === "—") return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  if (!text || text === "—") return <span className="text-white/30 text-xs">—</span>;
+
+  return (
+    <div 
+      className="group flex items-center gap-2 cursor-pointer w-full"
+      onDoubleClick={handleCopy}
+      onTouchStart={(e) => {
+        const now = Date.now();
+        const target = e.currentTarget as any;
+        const lastTap = target.lastTap || 0;
+        if (now - lastTap < 300) {
+          handleCopy(e);
+          target.lastTap = 0;
+        } else {
+          target.lastTap = now;
+        }
+      }}
+    >
+      <p className="text-white/80 text-xs max-w-[130px] truncate" style={{ fontFamily: "'Inter', sans-serif" }} title={text}>
+        {text}
+      </p>
+      <button 
+        onClick={handleCopy}
+        className="text-white/20 hover:text-[#fbbf24] transition-colors md:opacity-0 md:group-hover:opacity-100 flex-shrink-0"
+        title="Copy"
+      >
+        {copied ? <Check size={12} className="text-[#34d399]" /> : <Copy size={12} />}
+      </button>
+    </div>
+  );
+};
 
 export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -15,6 +64,7 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
 
   const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
 
+  const [fileFilter, setFileFilter] = useState<string>("");
   const [cityFilter, setCityFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [ratingFilter, setRatingFilter] = useState<string>("");
@@ -39,12 +89,25 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
       setProfile(data as Profile);
       
       // Fetch CRM leads assigned to this sales rep
-      const { data: leadsData } = await supabase.from("crm_leads")
-        .select("*")
-        .eq("assigned_to", user.id)
-        .order("created_at", { ascending: false });
+      let allLeads: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data: leadsData } = await supabase.from("crm_leads")
+          .select("*")
+          .eq("assigned_to", user.id)
+          .order("created_at", { ascending: false })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
         
-      if (leadsData) setLeads(leadsData);
+        if (leadsData && leadsData.length > 0) {
+          allLeads = [...allLeads, ...leadsData];
+          if (leadsData.length < pageSize) break;
+        } else {
+          break;
+        }
+        page++;
+      }
+      setLeads(allLeads);
 
       // Fetch developers
       const { data: devsData } = await supabase.from("profiles").select("*").eq("role", "developer");
@@ -100,6 +163,7 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
   }
 
   const filteredLeads = leads.filter(l => {
+    if (fileFilter && l.source_file !== fileFilter) return false;
     if (cityFilter && (l.city || "").toLowerCase() !== cityFilter.toLowerCase()) return false;
     if (statusFilter && l.status !== statusFilter) return false;
     if (ratingFilter) {
@@ -185,13 +249,29 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <select
+                    value={fileFilter}
+                    onChange={(e) => setFileFilter(e.target.value)}
+                    className="bg-black/50 border border-white/10 text-white text-xs px-3 py-1.5 outline-none rounded transition-colors"
+                    style={{ fontFamily: "'Inter', sans-serif" }}
+                  >
+                    <option value="">All Files</option>
+                    {Array.from(new Set(leads.map(l => l.source_file).filter(Boolean))).sort().map(f => (
+                      <option key={f as string} value={f as string}>{f as string}</option>
+                    ))}
+                  </select>
+                  <select
                     value={cityFilter}
                     onChange={(e) => setCityFilter(e.target.value)}
                     className="bg-black/50 border border-white/10 text-white text-xs px-3 py-1.5 outline-none rounded transition-colors"
                     style={{ fontFamily: "'Inter', sans-serif" }}
                   >
                     <option value="">All Cities</option>
-                    {Array.from(new Set(leads.map(l => l.city).filter(Boolean))).sort().map(c => (
+                    {Array.from(new Set(leads.filter(l => !fileFilter || l.source_file === fileFilter).map(l => l.city).filter(c => {
+                      if (!c) return false;
+                      if (c.includes('@')) return false;
+                      if (/\d{4,}/.test(c)) return false;
+                      return true;
+                    }))).sort().map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
@@ -256,53 +336,78 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-white/8" style={{ backgroundColor: "rgba(255,255,255,0.03)" }}>
-                        <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Company</th>
-                        <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Contact Info</th>
-                        <th 
-                          className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest cursor-pointer hover:text-white transition-colors" 
-                          style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-                          onClick={() => handleSort('rating')}
-                        >
-                          <div className="flex items-center gap-2">
-                            Rating
-                            {sortConfig?.key === 'rating' ? (
-                              sortConfig.direction === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
-                            ) : (
-                              <ArrowUpDown size={12} className="opacity-50" />
-                            )}
-                          </div>
-                        </th>
-                        <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Status</th>
-                        <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest text-right" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Action</th>
-                      </tr>
+                      {(() => {
+                        const allKeys = new Set<string>();
+                        for (const l of sortedLeads.slice(0, 100)) {
+                          if (l.dynamic_data) {
+                            Object.keys(l.dynamic_data).forEach(k => {
+                              if (k !== 'Row COLOUR LEGEND' && k !== '#' && k !== 'Raw Lead' && !k.toLowerCase().includes('email')) {
+                                allKeys.add(k);
+                              }
+                            });
+                          }
+                        }
+                        const dynamicKeys = Array.from(allKeys).slice(0, 5);
+                        return (
+                          <tr className="border-b border-white/8" style={{ backgroundColor: "rgba(255,255,255,0.03)" }}>
+                            <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Lead</th>
+                            {dynamicKeys.map(k => (
+                              <th key={k} className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest max-w-[150px] truncate" style={{ fontFamily: "'Barlow Condensed', sans-serif" }} title={k}>{k}</th>
+                            ))}
+                            <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Email</th>
+                            <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Status</th>
+                            <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest text-right" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Action</th>
+                          </tr>
+                        );
+                      })()}
                     </thead>
                     <tbody>
-                      {sortedLeads.map((l) => (
+                      {(() => {
+                        const allKeys = new Set<string>();
+                        for (const l of sortedLeads.slice(0, 100)) {
+                          if (l.dynamic_data) {
+                            Object.keys(l.dynamic_data).forEach(k => {
+                              if (k !== 'Row COLOUR LEGEND' && k !== '#' && k !== 'Raw Lead' && !k.toLowerCase().includes('email')) {
+                                allKeys.add(k);
+                              }
+                            });
+                          }
+                        }
+                        const dynamicKeys = Array.from(allKeys).slice(0, 5);
+                        return sortedLeads.map((l) => (
                         <tr key={l.id} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors group">
                           <td className="p-4">
-                            <p className="text-white/90 text-sm font-semibold" style={{ fontFamily: "'Inter', sans-serif" }}>{l.name}</p>
-                            {l.firm_type && <p className="text-white/40 text-[10px] uppercase tracking-wider mt-0.5">{l.firm_type}</p>}
+                            <p className="text-white/90 text-sm font-semibold max-w-[200px] truncate" style={{ fontFamily: "'Inter', sans-serif" }}>{l.name}</p>
                             {l.website && (
                               <a href={l.website.startsWith('http') ? l.website : `https://${l.website}`} target="_blank" rel="noreferrer" className="text-white/40 text-xs hover:text-white mt-1 inline-flex items-center gap-1" style={{ fontFamily: "'Inter', sans-serif" }}>
                                 <Globe size={10} /> Website
                               </a>
                             )}
                           </td>
+                          {dynamicKeys.map(k => {
+                            const isContactField = k.toLowerCase().includes('mobile') || k.toLowerCase().includes('phone') || k.toLowerCase().includes('office');
+                            return (
+                              <td key={k} className="p-4">
+                                {isContactField ? (
+                                  <CopyableText text={String(l.dynamic_data?.[k] || "—")} />
+                                ) : (
+                                  <p className="text-white/60 text-xs max-w-[150px] truncate" style={{ fontFamily: "'Inter', sans-serif" }} title={l.dynamic_data?.[k]}>
+                                    {l.dynamic_data?.[k] || "—"}
+                                  </p>
+                                )}
+                              </td>
+                            );
+                          })}
                           <td className="p-4">
-                            <p className="text-white/80 text-xs flex items-center gap-2 mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
-                              <Phone size={12} className="text-white/30" /> {l.phone || "No phone"}
-                            </p>
-                            <p className="text-white/60 text-xs flex items-start gap-2 max-w-[200px]" style={{ fontFamily: "'Inter', sans-serif" }}>
-                              <MapPin size={12} className="text-white/30 shrink-0 mt-0.5" /> {l.address || "No address"}
-                            </p>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-1">
-                              <Star size={12} className="text-yellow-500 fill-yellow-500" />
-                              <span className="text-white/90 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>{l.rating || "-"}</span>
-                              <span className="text-white/40 text-xs ml-1" style={{ fontFamily: "'Inter', sans-serif" }}>({String(l.reviews || "0").replace(/\D/g, '')})</span>
-                            </div>
+                            {(() => {
+                              const emailKey = l.dynamic_data ? Object.keys(l.dynamic_data).find(k => k.toLowerCase().includes('email')) : null;
+                              const email = emailKey ? l.dynamic_data[emailKey] : null;
+                              return email ? (
+                                <CopyableText text={email} />
+                              ) : (
+                                <span className="text-white/30 text-xs">—</span>
+                              );
+                            })()}
                           </td>
                           <td className="p-4">
                             <select
@@ -329,7 +434,8 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                             </button>
                           </td>
                         </tr>
-                      ))}
+                      ));
+                      })()}
                     </tbody>
                   </table>
                 </div>
@@ -517,6 +623,17 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                       <p className="text-white text-sm truncate" style={{ fontFamily: "'Inter', sans-serif" }}>
                         <a href={l.google_link} target="_blank" rel="noreferrer" className="text-[#60c8ff] hover:underline">{l.google_link}</a>
                       </p>
+                    </div>
+                  )}
+                  
+                  {l.dynamic_data && Object.keys(l.dynamic_data).length > 0 && (
+                    <div className="grid grid-cols-2 gap-4">
+                      {Object.entries(l.dynamic_data).filter(([k]) => k !== 'Row COLOUR LEGEND' && k !== '#').map(([key, val]) => (
+                        <div key={key} className="bg-white/5 border border-white/10 rounded-lg p-4">
+                          <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{key}</p>
+                          <p className="text-white text-sm break-words" style={{ fontFamily: "'Inter', sans-serif" }}>{String(val || "—")}</p>
+                        </div>
+                      ))}
                     </div>
                   )}
 

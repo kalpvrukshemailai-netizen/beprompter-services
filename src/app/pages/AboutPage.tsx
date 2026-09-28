@@ -2,6 +2,9 @@ import { useRef } from "react";
 import { motion, useInView } from "motion/react";
 import { ArrowRight } from "lucide-react";
 
+import founder1 from "@/imports/founder-1.jpg";
+import founder2 from "@/imports/founder-2.jpg";
+
 
 function AnimReveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef(null);
@@ -148,30 +151,88 @@ export function AboutPage({ onNavigate }: { onNavigate: (p: string) => void }) {
       </section>
 
       {/* Team — placeholder */}
+      {/* Founders */}
       <section style={{ backgroundColor: "#f5f5f5" }} className="py-20">
         <div className="max-w-7xl mx-auto px-6">
-          <AnimReveal className="mb-10">
-            <p className="text-black/50 text-xs font-bold tracking-[0.25em] uppercase mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Our People</p>
-            <h2 className="text-[#0a0a0a] mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(2rem, 4vw, 3.2rem)", fontWeight: 900, lineHeight: 1 }}>MEET THE TEAM</h2>
-            <p className="text-black/40 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>Team profiles coming soon — we will introduce each team member individually.</p>
+          <AnimReveal className="mb-14">
+            <p className="text-black/50 text-xs font-bold tracking-[0.25em] uppercase mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Leadership</p>
+            <h2 className="text-[#0a0a0a] mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(2rem, 4vw, 3.2rem)", fontWeight: 900, lineHeight: 1 }}>MEET THE FOUNDERS</h2>
           </AnimReveal>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {ROLES.map((role, i) => (
-              <motion.div
-                key={role}
-                className="text-center"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.08 }}
-              >
-                <div className="rounded-xl h-[200px] mb-3 border-2 border-dashed border-[#ccc] flex items-center justify-center" style={{ backgroundColor: "#eee" }}>
-                  <span className="text-[#bbb] text-xs font-bold uppercase tracking-wider" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Photo</span>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-6xl mx-auto mb-24">
+            {/* Founder 1 - CMO */}
+            <AnimReveal delay={0.1} className="lg:col-start-2">
+              <div className="group cursor-pointer">
+                <div className="relative overflow-hidden rounded-xl mb-5 bg-[#eaeaea] aspect-[3/4]">
+                  <img src={founder1} alt="Founder and CMO" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500" />
                 </div>
-                <p className="text-[#999] text-xs font-semibold" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: "0.05em" }}>{role}</p>
-              </motion.div>
-            ))}
+                <h3 className="text-[#0a0a0a] text-xl font-black mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>[Name]</h3>
+                <p className="text-[#666] text-xs font-bold tracking-widest uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Founder & CMO</p>
+              </div>
+            </AnimReveal>
+
+            {/* Founder 2 - CEO/CTO */}
+            <AnimReveal delay={0.2}>
+              <div className="group cursor-pointer">
+                <div className="relative overflow-hidden rounded-xl mb-5 bg-[#eaeaea] aspect-[3/4]">
+                  <img src={founder2} alt="Shaurya Pratap" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500" />
+                </div>
+                <h3 className="text-[#0a0a0a] text-xl font-black mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Shaurya Pratap</h3>
+                <p className="text-[#666] text-xs font-bold tracking-widest uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Founder, CEO & CTO</p>
+              </div>
+            </AnimReveal>
+          </div>
+
+          <AnimReveal className="mb-14">
+            <h2 className="text-[#0a0a0a] mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: "clamp(1.5rem, 3vw, 2.5rem)", fontWeight: 900, lineHeight: 1 }}>CORE TEAM</h2>
+          </AnimReveal>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-6xl mx-auto">
+            {/* Team Member 1 */}
+            <AnimReveal delay={0.1}>
+              <div className="group cursor-pointer">
+                <div className="relative overflow-hidden rounded-xl mb-5 bg-[#eaeaea] aspect-[3/4] flex items-center justify-center">
+                  <span className="text-[#aaa] text-xs font-bold tracking-widest uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Photo Needed</span>
+                </div>
+                <h3 className="text-[#0a0a0a] text-xl font-black mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Hemkash Soni</h3>
+                <p className="text-[#666] text-xs font-bold tracking-widest uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Android & Web Developer</p>
+              </div>
+            </AnimReveal>
+
+            {/* Team Member 2 */}
+            <AnimReveal delay={0.2}>
+              <div className="group cursor-pointer">
+                <div className="relative overflow-hidden rounded-xl mb-5 bg-[#eaeaea] aspect-[3/4] flex items-center justify-center">
+                  <span className="text-[#aaa] text-xs font-bold tracking-widest uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Photo Needed</span>
+                </div>
+                <h3 className="text-[#0a0a0a] text-xl font-black mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Saumaya</h3>
+                <p className="text-[#666] text-xs font-bold tracking-widest uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>AI Specialist</p>
+              </div>
+            </AnimReveal>
+
+            {/* Team Member 3 */}
+            <AnimReveal delay={0.3}>
+              <div className="group cursor-pointer">
+                <div className="relative overflow-hidden rounded-xl mb-5 bg-[#eaeaea] aspect-[3/4] flex items-center justify-center">
+                  <span className="text-[#aaa] text-xs font-bold tracking-widest uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Photo Needed</span>
+                </div>
+                <h3 className="text-[#0a0a0a] text-xl font-black mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Priyanshu Kumar</h3>
+                <p className="text-[#666] text-xs font-bold tracking-widest uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>AI Developer & Sales Rep</p>
+              </div>
+            </AnimReveal>
+
+            {/* Team Member 4 */}
+            <AnimReveal delay={0.4}>
+              <div className="group cursor-pointer">
+                <div className="relative overflow-hidden rounded-xl mb-5 bg-[#eaeaea] aspect-[3/4] flex items-center justify-center">
+                  <span className="text-[#aaa] text-xs font-bold tracking-widest uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Photo Needed</span>
+                </div>
+                <h3 className="text-[#0a0a0a] text-xl font-black mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Garv Goyal</h3>
+                <p className="text-[#666] text-xs font-bold tracking-widest uppercase mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Sales & Marketing</p>
+              </div>
+            </AnimReveal>
           </div>
         </div>
       </section>

@@ -148,7 +148,7 @@ export function HomePage({ onNavigate }: { onNavigate: (p: string) => void }) {
             </div>
           </FadeIn>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
             {SERVICES_GRID.map((s, i) => (
               <FadeIn key={s.title} delay={i * 0.05} className="bg-black relative group h-full">
                 <div className="absolute inset-0 bg-white/0 group-hover:bg-white/[0.03] transition-colors duration-500" />
