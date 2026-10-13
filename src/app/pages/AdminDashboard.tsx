@@ -1,23 +1,58 @@
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
-import { LogOut, User, ShieldAlert, Users, Shield, RefreshCw, Mail, ArrowLeft, FileText, Upload, FileUp, Trash2, X } from "lucide-react";
+import { 
+  Shield, LogOut, ChevronDown, LayoutDashboard, Users,
+  Building2, Briefcase, Mail, Database, Eye,
+  Activity, CreditCard, ShieldAlert, Settings
+} from "lucide-react";
 import { supabase, Profile, UserRole } from "@/lib/supabase";
-import { DashboardLayout } from "@/app/components/DashboardLayout";
 import Papa from "papaparse";
 
+import { AdminOverview } from "./admin/tabs/AdminOverview";
+import { AdminUsersRoles } from "./admin/tabs/AdminUsersRoles";
+import { AdminWorkspaces } from "./admin/tabs/AdminWorkspaces";
+import { AdminProjects } from "./admin/tabs/AdminProjects";
+import { AdminLeads } from "./admin/tabs/AdminLeads";
+import { AdminCrm } from "./admin/tabs/AdminCrm";
+
+type AdminTab = "overview" | "users" | "workspaces" | "projects" | "leads" | "crm" | "conversations" | "ai-ops" | "billing" | "security" | "settings";
+
 export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void }) {
+  const [activeTab, setActiveTab] = useState<AdminTab>("overview");
+  
+  // Data states
   const [profile, setProfile] = useState<Profile | null>(null);
   const [users, setUsers] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [crmLeads, setCrmLeads] = useState<any[]>([]);
+  
+  // UI states
+  const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [uploadingCsv, setUploadingCsv] = useState(false);
+  
+  // CRM Filters
   const [cityFilter, setCityFilter] = useState<string>("");
   const [fileFilter, setFileFilter] = useState<string>("");
   const [bulkAssignRep, setBulkAssignRep] = useState<string>("");
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "") as AdminTab;
+      if (["overview", "users", "workspaces", "projects", "leads", "crm", "conversations", "ai-ops", "billing", "security", "settings"].includes(hash)) {
+        setActiveTab(hash);
+      }
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleTabChange = (tab: AdminTab) => {
+    setActiveTab(tab);
+    window.location.hash = tab;
+  };
 
   useEffect(() => {
     (async () => {
@@ -26,7 +61,6 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
       
       const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single();
       
-      // Security Check: Kick out non-admins
       if (!profileData || profileData.role !== "admin") {
         onNavigate("home");
         return;
@@ -46,38 +80,35 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setUpdatingId(userId);
     const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
-    if (!error) {
-      await fetchUsers();
-    } else {
-      console.error("Failed to update role:", error);
-    }
+    if (!error) await fetchUsers();
     setUpdatingId(null);
   };
 
   const handleRemoveUser = async (userId: string) => {
-    if (!window.confirm("Are you sure you want to remove this member? This action cannot be undone.")) return;
-    
+    if (!window.confirm("Are you sure you want to remove this member?")) return;
     setUpdatingId(userId);
     const { error } = await supabase.from("profiles").delete().eq("id", userId);
-    
-    if (!error) {
-      await fetchUsers();
-    } else {
-      console.error("Failed to remove member:", error);
-      alert("Failed to remove member: " + error.message);
-    }
+    if (!error) await fetchUsers();
     setUpdatingId(null);
   };
 
   const fetchProjects = async () => {
-    const { data: pData } = await supabase.from("projects").select(`
-      *,
-      client:profiles!projects_client_id_fkey(full_name, email, company_name)
-    `).order("created_at", { ascending: false });
+    const { data: pData } = await supabase.from("projects").select(`*, client:profiles!projects_client_id_fkey(full_name, email, company_name)`).order("created_at", { ascending: false });
     const { data: mData } = await supabase.from("project_members").select("*");
-    
     if (pData) setProjects(pData);
     if (mData) setProjectMembers(mData);
+  };
+
+  const handleToggleAssignment = async (projectId: string, userId: string) => {
+    setUpdatingId(`assign-${projectId}`);
+    const isAssigned = projectMembers.some(m => m.project_id === projectId && m.user_id === userId);
+    if (isAssigned) {
+      await supabase.from("project_members").delete().match({ project_id: projectId, user_id: userId });
+    } else {
+      await supabase.from("project_members").insert({ project_id: projectId, user_id: userId });
+    }
+    await fetchProjects();
+    setUpdatingId(null);
   };
 
   const fetchLeads = async () => {
@@ -88,19 +119,12 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
   const fetchCrmLeads = async () => {
     let allLeads: any[] = [];
     let page = 0;
-    const pageSize = 1000;
     while (true) {
-      const { data } = await supabase.from("crm_leads")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .range(page * pageSize, (page + 1) * pageSize - 1);
-      
+      const { data } = await supabase.from("crm_leads").select("*").order("created_at", { ascending: false }).range(page * 1000, (page + 1) * 1000 - 1);
       if (data && data.length > 0) {
         allLeads = [...allLeads, ...data];
-        if (data.length < pageSize) break;
-      } else {
-        break;
-      }
+        if (data.length < 1000) break;
+      } else break;
       page++;
     }
     setCrmLeads(allLeads);
@@ -117,16 +141,11 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
       skipEmptyLines: true,
       complete: async (results) => {
         const rows = results.data as string[][];
-        
-        // Find the actual header row (row with most columns, usually > 5)
         let headerIndex = 0;
         let maxCols = 0;
         for (let i = 0; i < Math.min(20, rows.length); i++) {
             const nonNullCols = rows[i].filter(c => c && c.trim() !== '').length;
-            if (nonNullCols > maxCols) {
-                maxCols = nonNullCols;
-                headerIndex = i;
-            }
+            if (nonNullCols > maxCols) { maxCols = nonNullCols; headerIndex = i; }
         }
         
         const headers = rows[headerIndex].map(h => h.trim());
@@ -147,35 +166,22 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
             let hasData = false;
             headers.forEach((header, index) => {
                 const val = row[index]?.trim();
-                if (header && val) {
-                    dynamicData[header] = val;
-                    hasData = true;
-                }
+                if (header && val) { dynamicData[header] = val; hasData = true; }
             });
             
             if (!hasData) continue;
             
             const nameKey = headers.find(h => h.toLowerCase().includes('name') || h.toLowerCase().includes('business') || h.toLowerCase().includes('company') || h.toLowerCase().includes('lead') && !h.toLowerCase().includes('category'));
             const name = nameKey ? dynamicData[nameKey] : "Unknown";
-            
             const phoneKey = headers.find(h => h.toLowerCase() === 'phone' || h.toLowerCase().includes('mobile') || h.toLowerCase().includes('office'));
             const phone = phoneKey ? dynamicData[phoneKey] : null;
-            
             const cityKey = headers.find(h => {
                 const lh = h.toLowerCase();
                 return (lh.includes('city') || lh.includes('location') || lh.includes('address') || lh.includes('state') || lh.includes('suburb')) && !lh.includes('email');
             });
             const city = cityKey ? dynamicData[cityKey] : null;
-            
             const websiteKey = headers.find(h => h.toLowerCase().includes('website') || h.toLowerCase().includes('url'));
             const website = websiteKey ? dynamicData[websiteKey] : null;
-            
-            const ratingKey = headers.find(h => h.toLowerCase().includes('rating'));
-            const rating = ratingKey ? dynamicData[ratingKey] : null;
-            
-            const reviewsKey = headers.find(h => h.toLowerCase().includes('review'));
-            const reviews = reviewsKey ? dynamicData[reviewsKey] : null;
-            
             const emailKey = headers.find(h => h.toLowerCase().includes('email'));
             const email = emailKey ? dynamicData[emailKey] : null;
 
@@ -184,12 +190,7 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
             const normWebsite = normalize(website);
             const normEmail = normalize(email);
             
-            if (
-              (normName && seenNames.has(normName)) ||
-              (normPhone && seenPhones.has(normPhone)) ||
-              (normWebsite && seenWebsites.has(normWebsite)) ||
-              (normEmail && seenEmails.has(normEmail))
-            ) {
+            if ((normName && seenNames.has(normName)) || (normPhone && seenPhones.has(normPhone)) || (normWebsite && seenWebsites.has(normWebsite)) || (normEmail && seenEmails.has(normEmail))) {
               continue;
             }
 
@@ -199,74 +200,43 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
             if (normEmail) seenEmails.add(normEmail);
 
             newLeads.push({
-                name: name || "Unknown",
-                phone: phone || null,
-                city: city || null,
-                website: website || null,
-                rating: rating || null,
-                reviews: reviews || null,
-                source_file: file.name,
-                dynamic_data: dynamicData
+                name: name || "Unknown", phone: phone || null, city: city || null, website: website || null,
+                source_file: file.name, dynamic_data: dynamicData
             });
         }
         
         if (newLeads.length > 0) {
-          // Chunking inserts to avoid URL limits if the file is massive
           for (let i = 0; i < newLeads.length; i += 100) {
             await supabase.from("crm_leads").insert(newLeads.slice(i, i + 100));
           }
           await fetchCrmLeads();
         }
         setUploadingCsv(false);
-        e.target.value = ''; // Reset input
-      },
-      error: (error) => {
-        console.error("CSV Parse Error:", error);
-        alert("Failed to parse CSV: " + error.message);
-        setUploadingCsv(false);
-        e.target.value = ''; // Reset input
+        e.target.value = '';
       }
     });
   };
 
   const handleRemoveDuplicates = async () => {
-    if (!confirm("This will permanently remove duplicate leads (checking by Name, Phone, Email, or Website) keeping only the oldest record. Continue?")) return;
-    
-    setUploadingCsv(true); // Reuse this state for loading indicator
-    
+    if (!confirm("This will permanently remove duplicate leads keeping only the oldest record. Continue?")) return;
+    setUploadingCsv(true);
     const normalize = (str?: string | null) => str ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : null;
-    
-    const seenNames = new Set();
-    const seenPhones = new Set();
-    const seenWebsites = new Set();
-    const seenEmails = new Set();
-    
+    const seenNames = new Set(); const seenPhones = new Set(); const seenWebsites = new Set(); const seenEmails = new Set();
     const duplicatesToDelete: string[] = [];
-    
-    // Sort leads by created_at so we keep the oldest ones
     const sortedLeads = [...crmLeads].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     
     for (const lead of sortedLeads) {
       const emailKey = Object.keys(lead.dynamic_data || {}).find(k => k.toLowerCase().includes('email'));
       const email = emailKey ? lead.dynamic_data[emailKey] : null;
-      
       const normName = normalize(lead.name);
       const normPhone = normalize(lead.phone);
       const normWebsite = normalize(lead.website);
       const normEmail = normalize(email);
       
-      const isDuplicate = (normName && seenNames.has(normName)) || 
-                          (normPhone && seenPhones.has(normPhone)) || 
-                          (normWebsite && seenWebsites.has(normWebsite)) || 
-                          (normEmail && seenEmails.has(normEmail));
-                          
-      if (isDuplicate) {
+      if ((normName && seenNames.has(normName)) || (normPhone && seenPhones.has(normPhone)) || (normWebsite && seenWebsites.has(normWebsite)) || (normEmail && seenEmails.has(normEmail))) {
         duplicatesToDelete.push(lead.id);
       } else {
-        if (normName) seenNames.add(normName);
-        if (normPhone) seenPhones.add(normPhone);
-        if (normWebsite) seenWebsites.add(normWebsite);
-        if (normEmail) seenEmails.add(normEmail);
+        if (normName) seenNames.add(normName); if (normPhone) seenPhones.add(normPhone); if (normWebsite) seenWebsites.add(normWebsite); if (normEmail) seenEmails.add(normEmail);
       }
     }
     
@@ -279,60 +249,38 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
     } else {
       alert("No duplicates found.");
     }
-    
     setUploadingCsv(false);
   };
 
   const handleDeleteFileLeads = async () => {
     if (!fileFilter) return;
-    if (!confirm(`Are you sure you want to completely delete all leads from "${fileFilter}"? This cannot be undone.`)) return;
-    
+    if (!confirm(`Are you sure you want to completely delete all leads from "${fileFilter}"?`)) return;
     setUpdatingId('delete-file');
-    try {
-      // Chunking deletion
-      const fileLeads = crmLeads.filter(l => l.source_file === fileFilter).map(l => l.id);
-      for (let i = 0; i < fileLeads.length; i += 100) {
-        await supabase.from("crm_leads").delete().in("id", fileLeads.slice(i, i + 100));
-      }
-      setFileFilter("");
-      setCityFilter("");
-      setBulkAssignRep("");
-      await fetchCrmLeads();
-      alert("Successfully deleted all leads from that file.");
-    } catch (err: any) {
-      console.error("Delete file failed:", err);
-      alert("Failed to delete leads: " + err.message);
-    } finally {
-      setUpdatingId(null);
+    const fileLeads = crmLeads.filter(l => l.source_file === fileFilter).map(l => l.id);
+    for (let i = 0; i < fileLeads.length; i += 100) {
+      await supabase.from("crm_leads").delete().in("id", fileLeads.slice(i, i + 100));
     }
+    setFileFilter(""); setCityFilter(""); setBulkAssignRep("");
+    await fetchCrmLeads();
+    setUpdatingId(null);
   };
 
   const handleBulkAssign = async () => {
     if (!bulkAssignRep) return;
-    
     let filteredLeads = crmLeads;
     if (fileFilter) filteredLeads = filteredLeads.filter(l => l.source_file === fileFilter);
     if (cityFilter) filteredLeads = filteredLeads.filter(l => (l.city || "").toLowerCase().includes(cityFilter.toLowerCase()));
     
     const unassignedIds = filteredLeads.filter(l => !l.assigned_to).map(l => l.id);
-    
     if (unassignedIds.length === 0) return;
     
     setUpdatingId('bulk-assign');
-    try {
-      // Chunking to avoid URL Too Large error
-      for (let i = 0; i < unassignedIds.length; i += 100) {
-        const { error } = await supabase.from("crm_leads").update({ assigned_to: bulkAssignRep }).in("id", unassignedIds.slice(i, i + 100));
-        if (error) throw error;
-      }
-      await fetchCrmLeads();
-      setBulkAssignRep("");
-    } catch (err: any) {
-      console.error("Bulk assign failed:", err);
-      alert("Failed to assign leads: " + err.message);
-    } finally {
-      setUpdatingId(null);
+    for (let i = 0; i < unassignedIds.length; i += 100) {
+      await supabase.from("crm_leads").update({ assigned_to: bulkAssignRep }).in("id", unassignedIds.slice(i, i + 100));
     }
+    await fetchCrmLeads();
+    setBulkAssignRep("");
+    setUpdatingId(null);
   };
 
   const handleBulkUnassign = async () => {
@@ -341,45 +289,13 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
     if (cityFilter) filteredLeads = filteredLeads.filter(l => (l.city || "").toLowerCase().includes(cityFilter.toLowerCase()));
     
     const assignedIds = filteredLeads.filter(l => l.assigned_to).map(l => l.id);
-    
     if (assignedIds.length === 0) return;
     
-    if (!window.confirm(`Are you sure you want to unassign ${assignedIds.length} leads?`)) return;
-    
     setUpdatingId('bulk-unassign');
-    try {
-      for (let i = 0; i < assignedIds.length; i += 100) {
-        const { error } = await supabase.from("crm_leads").update({ assigned_to: null }).in("id", assignedIds.slice(i, i + 100));
-        if (error) throw error;
-      }
-      await fetchCrmLeads();
-    } catch (err: any) {
-      console.error("Bulk unassign failed:", err);
-      alert("Failed to unassign leads: " + err.message);
-    } finally {
-      setUpdatingId(null);
+    for (let i = 0; i < assignedIds.length; i += 100) {
+      await supabase.from("crm_leads").update({ assigned_to: null }).in("id", assignedIds.slice(i, i + 100));
     }
-  };
-
-  const handleAssignCrmLead = async (leadId: string, userId: string | null) => {
-    setUpdatingId(`assign-crm-${leadId}`);
-    const { error } = await supabase.from("crm_leads").update({ assigned_to: userId || null }).eq("id", leadId);
-    if (!error) {
-      await fetchCrmLeads();
-    }
-    setUpdatingId(null);
-  };
-
-  const handleToggleAssignment = async (projectId: string, userId: string) => {
-    setUpdatingId(`assign-${projectId}`);
-    const isAssigned = projectMembers.some(m => m.project_id === projectId && m.user_id === userId);
-    
-    if (isAssigned) {
-      await supabase.from("project_members").delete().match({ project_id: projectId, user_id: userId });
-    } else {
-      await supabase.from("project_members").insert({ project_id: projectId, user_id: userId });
-    }
-    await fetchProjects();
+    await fetchCrmLeads();
     setUpdatingId(null);
   };
 
@@ -388,511 +304,134 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
     onNavigate("home");
   };
 
+  if (loading) return <div className="h-screen bg-[#0A0A0A] flex items-center justify-center text-white/50 text-sm">Loading admin environment...</div>;
+
+  const NavItem = ({ tab, icon: Icon, label }: { tab: AdminTab, icon: any, label: string }) => {
+    const active = activeTab === tab;
+    return (
+      <button 
+        onClick={() => handleTabChange(tab)}
+        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-md text-xs transition-colors font-medium ${active ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white/90'}`}
+      >
+        <Icon size={14} />
+        {label}
+      </button>
+    );
+  };
+
   return (
-    <DashboardLayout
-      loading={loading}
-      title={<><ShieldAlert size={12} className="text-red-400" /> Admin Control Center</>}
-      titleAccent="white"
-      userName={profile?.full_name?.split(" ")[0] ?? "Admin"}
-      roleName="Admin Access"
-      userEmail={profile?.email ?? ""}
-      icon={Shield}
-      iconAccent="#ef4444"
-      onSignOut={signOut}
-    >
-        <div className="flex items-center gap-3 mb-6">
-          <Users size={20} className="text-white/40" />
-          <h2 className="text-white font-black text-xl uppercase tracking-wider" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-            User & Role Management
-          </h2>
+    <div className="flex h-screen bg-[#0A0A0A] overflow-hidden text-white">
+      {/* Sidebar */}
+      <div className="w-64 shrink-0 border-r border-white/5 flex flex-col bg-[#0A0A0A] relative z-20">
+        <div className="p-6 border-b border-white/5">
+          <div className="flex items-center gap-2 mb-6 cursor-pointer" onClick={() => onNavigate("home")}>
+            <div className="font-black text-xl tracking-tighter text-white">BE</div>
+            <div className="font-black text-[10px] tracking-[0.2em] text-white">BEPROMPTER</div>
+          </div>
+          <button className="w-full flex items-center justify-between p-3 border border-white/10 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+            <div className="text-left">
+              <p className="text-xs text-white font-medium">Platform admin</p>
+              <p className="text-[10px] text-white/50">All client workspaces</p>
+            </div>
+            <ChevronDown size={14} className="text-white/50" />
+          </button>
         </div>
 
-        <div className="border border-white/8 rounded-lg overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/8" style={{ backgroundColor: "rgba(255,255,255,0.03)" }}>
-                  <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Name</th>
-                  <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Email</th>
-                  <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Company</th>
-                  <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest text-right" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Role</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
-                    <td className="p-4">
-                      <p className="text-white/90 text-sm font-semibold" style={{ fontFamily: "'Inter', sans-serif" }}>{u.full_name || "—"}</p>
-                      <p className="text-white/30 text-xs mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>ID: {u.id.substring(0, 8)}...</p>
-                    </td>
-                    <td className="p-4">
-                      <p className="text-white/60 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>{u.email}</p>
-                    </td>
-                    <td className="p-4">
-                      <p className="text-white/60 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>{u.company_name || "—"}</p>
-                    </td>
-                    <td className="p-4 text-right">
-                      {updatingId === u.id ? (
-                        <div className="flex items-center justify-end gap-2 text-white/50 text-xs py-1.5 px-3">
-                          <RefreshCw size={12} className="animate-spin" /> Updating...
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end gap-2">
-                          <select
-                            value={u.role}
-                            onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
-                            className="bg-black/50 border border-white/10 text-white text-xs px-3 py-1.5 outline-none focus:border-white/40 rounded transition-colors"
-                            style={{ fontFamily: "'Inter', sans-serif" }}
-                            disabled={u.id === profile?.id} // Prevent admin from demoting themselves by accident
-                          >
-                            <option value="client">Client</option>
-                            <option value="developer">Developer</option>
-                            <option value="sales">Sales</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                          {u.id !== profile?.id && (
-                            <button
-                              onClick={() => handleRemoveUser(u.id)}
-                              className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                              title="Remove Member"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="p-8 text-center text-white/30 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
-                      No users found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        <div className="flex-1 overflow-y-auto px-2 py-4">
+          <div className="mb-8">
+            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-4 mb-2">Platform Control</p>
+            <div className="space-y-0.5">
+              <NavItem tab="overview" icon={LayoutDashboard} label="Admin Overview" />
+              <NavItem tab="users" icon={Users} label="Users & Roles" />
+              <NavItem tab="workspaces" icon={Building2} label="Client Workspaces" />
+              <NavItem tab="projects" icon={Briefcase} label="Projects & Team Assignment" />
+              <NavItem tab="leads" icon={Mail} label="Inbound Leads" />
+              <NavItem tab="crm" icon={Database} label="Sales CRM Distribution" />
+              <NavItem tab="conversations" icon={Eye} label="Conversation Oversight" />
+              <NavItem tab="ai-ops" icon={Activity} label="AI Operations & System Health" />
+              <NavItem tab="billing" icon={CreditCard} label="Billing & Usage" />
+              <NavItem tab="security" icon={ShieldAlert} label="Security & Audit" />
+              <NavItem tab="settings" icon={Settings} label="Platform Settings & Integrations" />
+            </div>
+          </div>
+          
+          <div>
+            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest px-4 mb-2">Admin Control Center</p>
+            <div className="px-4 py-2 border border-white/10 rounded-md bg-white/[0.02] text-xs">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield size={14} className="text-white" />
+                <span className="font-medium">Platform-wide access</span>
+              </div>
+              <p className="text-[10px] text-white/50 mb-1">Illustrative demo environment.</p>
+              <p className="text-[10px] text-white/50">Sensitive actions are audited.</p>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-3 mb-6 mt-16">
-          <ShieldAlert size={20} className="text-white/40" />
-          <h2 className="text-white font-black text-xl uppercase tracking-wider" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-            Project Assignment
-          </h2>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {projects.map((p) => {
-            const client = Array.isArray(p.client) ? p.client[0] : p.client;
-            const assignedIds = projectMembers.filter(m => m.project_id === p.id).map(m => m.user_id);
-            const teamMembers = users.filter(u => u.role === "developer" || u.role === "sales");
-            
-            return (
-              <div key={p.id} className="border border-white/8 rounded-lg p-6" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-white font-bold text-lg mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{p.title}</h3>
-                    <p className="text-white/50 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>Client: {client?.full_name ?? "Unknown"}</p>
-                  </div>
-                  <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-1 rounded bg-white/10 text-white/70">
-                    {p.status.replace("_", " ")}
-                  </span>
-                </div>
-                
-                <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-3 mt-6" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                  Assign Team Members
-                </p>
-                <div className="space-y-2">
-                  {teamMembers.length === 0 ? (
-                    <p className="text-white/30 text-xs italic">No developers or sales team available.</p>
-                  ) : (
-                    teamMembers.map(tm => {
-                      const isAssigned = assignedIds.includes(tm.id);
-                      return (
-                        <label key={tm.id} className={`flex items-center gap-3 p-3 border rounded cursor-pointer transition-colors ${isAssigned ? 'border-red-500/30 bg-red-500/5' : 'border-white/10 hover:border-white/30 hover:bg-white/5'}`}>
-                          <input 
-                            type="checkbox" 
-                            checked={isAssigned} 
-                            onChange={() => handleToggleAssignment(p.id, tm.id)}
-                            disabled={updatingId === `assign-${p.id}`}
-                            className="accent-red-500"
-                          />
-                          <div className="flex-1">
-                            <p className="text-white text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>{tm.full_name}</p>
-                            <p className="text-white/40 text-xs capitalize" style={{ fontFamily: "'Inter', sans-serif" }}>{tm.role}</p>
-                          </div>
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
+        <div className="p-4 border-t border-white/5">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold">Help & resources</span>
+            <span className="text-white/50">↗</span>
+          </div>
+          <div className="flex items-center justify-between group">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center text-xs font-bold">
+                {profile?.full_name?.charAt(0) || "A"}
               </div>
-            );
-          })}
-          {projects.length === 0 && (
-            <div className="col-span-full border border-white/8 rounded-lg p-8 text-center text-white/30 text-sm" style={{ backgroundColor: "rgba(255,255,255,0.02)", fontFamily: "'Inter', sans-serif" }}>
-              No projects exist yet.
+              <div>
+                <p className="text-xs font-medium text-white">{profile?.full_name}</p>
+                <p className="text-[10px] text-white/50 truncate w-32">{profile?.email}</p>
+              </div>
+            </div>
+            <button onClick={signOut} className="text-white/30 hover:text-red-400 transition-colors">
+              <LogOut size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 bg-[#0A0A0A] relative z-10">
+        <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0A0A0A]/80 backdrop-blur-md sticky top-0 z-30">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-white/40">Platform admin</span>
+            <span className="text-white/40">/</span>
+            <span className="text-white font-medium capitalize">{activeTab.replace('-', ' ')}</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="bg-white/10 text-white/60 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest">Demo Data</span>
+            <div className="relative">
+              <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+              <input type="text" placeholder="Search platform..." className="bg-transparent border border-white/10 rounded-full px-8 py-1.5 text-xs text-white placeholder:text-white/40 outline-none w-48 focus:border-white/40" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 text-[10px] font-mono border border-white/10 rounded px-1">⌘ K</span>
+            </div>
+            <Bell size={14} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
+            <span className="text-[10px] text-white/60 font-mono">10 Oct 2026 · IST</span>
+          </div>
+        </header>
+        
+        <main className="flex-1 overflow-y-auto">
+          {activeTab === "overview" && <AdminOverview />}
+          {activeTab === "users" && <AdminUsersRoles users={users} onRoleChange={handleRoleChange} onRemove={handleRemoveUser} />}
+          {activeTab === "workspaces" && <AdminWorkspaces />}
+          {activeTab === "projects" && <AdminProjects projects={projects} projectMembers={projectMembers} users={users} onToggleAssignment={handleToggleAssignment} updatingId={updatingId} />}
+          {activeTab === "leads" && <AdminLeads leads={leads} />}
+          {activeTab === "crm" && (
+            <AdminCrm 
+              crmLeads={crmLeads} users={users} uploadingCsv={uploadingCsv} fileFilter={fileFilter} cityFilter={cityFilter} bulkAssignRep={bulkAssignRep} updatingId={updatingId}
+              setFileFilter={setFileFilter} setCityFilter={setCityFilter} setBulkAssignRep={setBulkAssignRep} handleCsvUpload={handleCsvUpload} handleRemoveDuplicates={handleRemoveDuplicates}
+              handleDeleteFileLeads={handleDeleteFileLeads} handleBulkAssign={handleBulkAssign} handleBulkUnassign={handleBulkUnassign}
+            />
+          )}
+          {["conversations", "ai-ops", "billing", "security", "settings"].includes(activeTab) && (
+            <div className="p-10 text-center text-white/40 flex flex-col items-center justify-center h-[50vh]">
+              <Settings size={32} className="mb-4 opacity-20" />
+              <h2 className="text-xl mb-2 text-white/80" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Module in development</h2>
+              <p className="text-sm">This administrative interface is being built according to the new design system.</p>
             </div>
           )}
-        </div>
-
-        {/* Leads Section */}
-        <div className="flex items-center gap-3 mb-6 mt-16">
-          <Mail size={20} className="text-white/40" />
-          <h2 className="text-white font-black text-xl uppercase tracking-wider" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-            Inbound Leads (Contact Forms)
-          </h2>
-        </div>
-
-        <div className="border border-white/8 rounded-lg overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/8" style={{ backgroundColor: "rgba(255,255,255,0.03)" }}>
-                  <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Date</th>
-                  <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Contact</th>
-                  <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Interest</th>
-                  <th className="p-4 text-white/40 text-xs font-bold uppercase tracking-widest text-right" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Budget</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leads.map((l) => (
-                  <tr key={l.id} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors group">
-                    <td className="p-4 align-top">
-                      <p className="text-white/60 text-xs whitespace-nowrap" style={{ fontFamily: "'Inter', sans-serif" }}>
-                        {new Date(l.created_at).toLocaleDateString()}
-                      </p>
-                    </td>
-                    <td className="p-4 align-top">
-                      <p className="text-white/90 text-sm font-semibold" style={{ fontFamily: "'Inter', sans-serif" }}>{l.name}</p>
-                      <p className="text-white/60 text-xs mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>{l.email}</p>
-                      {l.phone && <p className="text-white/40 text-xs mt-0.5" style={{ fontFamily: "'Inter', sans-serif" }}>{l.phone}</p>}
-                    </td>
-                    <td className="p-4 align-top">
-                      <p className="text-white/90 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>{l.service_interest || "—"}</p>
-                      {l.message && (
-                        <p className="text-white/50 text-xs mt-2 max-w-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
-                          "{l.message}"
-                        </p>
-                      )}
-                    </td>
-                    <td className="p-4 text-right align-top">
-                      <span className="text-white/90 text-sm font-semibold px-2 py-1 rounded bg-white/5" style={{ fontFamily: "'Inter', sans-serif" }}>
-                        {l.budget || "—"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {leads.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="p-8 text-center text-white/30 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
-                      No leads have been submitted yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* CRM Leads Distribution Section */}
-        <div className="flex items-center justify-between mb-6 mt-16">
-          <div className="flex items-center gap-3">
-            <Users size={20} className="text-[#fbbf24]/70" />
-            <h2 className="text-white font-black text-xl uppercase tracking-wider text-[#fbbf24]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-              Sales CRM Distribution
-            </h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={handleRemoveDuplicates}
-              disabled={uploadingCsv}
-              className={`
-              flex items-center gap-2 bg-[#f87171]/10 hover:bg-[#f87171]/20 border border-[#f87171]/30 
-              text-[#f87171] px-4 py-2 text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer rounded
-              ${uploadingCsv ? 'opacity-50 pointer-events-none' : ''}
-            `} style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-              <Trash2 size={14} /> Remove Duplicates
-            </button>
-            <label className={`
-              flex items-center gap-2 bg-[#fbbf24]/10 hover:bg-[#fbbf24]/20 border border-[#fbbf24]/30 
-              text-[#fbbf24] px-4 py-2 text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer rounded
-              ${uploadingCsv ? 'opacity-50 pointer-events-none' : ''}
-            `} style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-              {uploadingCsv ? <RefreshCw size={14} className="animate-spin" /> : <FileUp size={14} />}
-              {uploadingCsv ? 'Uploading...' : 'Upload CSV Leads'}
-              <input type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} disabled={uploadingCsv} />
-            </label>
-          </div>
-        </div>
-
-        {!fileFilter ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from(new Set(crmLeads.map(l => l.source_file).filter(Boolean))).sort().map(f => {
-              const fileLeads = crmLeads.filter(l => l.source_file === f);
-              const unassigned = fileLeads.filter(l => !l.assigned_to).length;
-              return (
-                <div key={f} className="bg-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-lg p-5 hover:bg-[#fbbf24]/10 transition-colors cursor-pointer" onClick={() => setFileFilter(f)}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <FileText size={20} className="text-[#fbbf24]" />
-                    <h3 className="text-white font-bold truncate flex-1" style={{ fontFamily: "'Inter', sans-serif" }}>{f}</h3>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-white/60">Total Leads: <strong className="text-white">{fileLeads.length}</strong></span>
-                    <span className={unassigned > 0 ? "text-[#fbbf24]" : "text-[#34d399]"}>{unassigned} unassigned</span>
-                  </div>
-                </div>
-              );
-            })}
-            {Array.from(new Set(crmLeads.map(l => l.source_file).filter(Boolean))).length === 0 && (
-              <div className="col-span-full border border-dashed border-white/10 rounded p-10 text-center">
-                <FileUp size={28} className="mx-auto mb-3 text-white/15" />
-                <p className="text-white/30 text-sm font-semibold mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>No CSV files uploaded yet</p>
-                <p className="text-white/20 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>Upload a CSV file to begin assigning leads.</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="bg-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-lg p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-                <button 
-                  onClick={() => { setFileFilter(""); setCityFilter(""); setBulkAssignRep(""); }}
-                  className="flex items-center gap-2 bg-black/50 hover:bg-black/80 border border-[#fbbf24]/30 text-white text-xs px-3 py-2 outline-none rounded transition-colors w-full md:w-auto"
-                >
-                  <ArrowLeft size={14} /> Back to Files
-                </button>
-                <button 
-                  onClick={handleDeleteFileLeads}
-                  disabled={updatingId === 'delete-file'}
-                  className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs px-3 py-2 outline-none rounded transition-colors w-full md:w-auto"
-                >
-                  <Trash2 size={14} /> {updatingId === 'delete-file' ? 'Deleting...' : 'Delete File'}
-                </button>
-                <div className="flex flex-col">
-                  <label className="text-[#fbbf24]/70 text-[10px] uppercase tracking-widest font-bold mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Current File</label>
-                  <div className="bg-black/30 border border-[#fbbf24]/30 text-[#fbbf24] font-bold text-xs px-3 py-2 outline-none rounded transition-colors w-full md:w-48 truncate flex items-center gap-2" style={{ fontFamily: "'Inter', sans-serif" }}>
-                    <FileText size={12} /> {fileFilter}
-                  </div>
-                </div>
-            
-            <div className="flex flex-col">
-              <label className="text-[#fbbf24]/70 text-[10px] uppercase tracking-widest font-bold mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Filter by City</label>
-              <select
-                value={cityFilter}
-                onChange={(e) => setCityFilter(e.target.value)}
-                className="bg-black/50 border border-[#fbbf24]/30 text-white text-xs px-3 py-2 outline-none rounded transition-colors w-full md:w-48"
-                style={{ fontFamily: "'Inter', sans-serif" }}
-              >
-                <option value="">All Cities</option>
-                {Array.from(new Set(crmLeads
-                  .filter(l => !fileFilter || l.source_file === fileFilter)
-                  .map(l => l.city)
-                  .filter(c => {
-                    if (!c) return false;
-                    if (c.includes('@')) return false;
-                    if (/\d{4,}/.test(c)) return false;
-                    return true;
-                  })
-                )).sort().map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="flex flex-col">
-              <label className="text-[#fbbf24]/70 text-[10px] uppercase tracking-widest font-bold mb-1" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Bulk Assign Filtered Leads</label>
-              <div className="flex items-center gap-2">
-                <select
-                  value={bulkAssignRep}
-                  onChange={(e) => setBulkAssignRep(e.target.value)}
-                  className="bg-black/50 border border-[#fbbf24]/30 text-white text-xs px-3 py-2 outline-none rounded transition-colors w-full md:w-48"
-                  style={{ fontFamily: "'Inter', sans-serif" }}
-                >
-                  <option value="">-- Select Sales Rep --</option>
-                  {users.filter(u => u.role === "sales").map(rep => (
-                    <option key={rep.id} value={rep.id}>{rep.full_name}</option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleBulkAssign}
-                  disabled={!bulkAssignRep || updatingId === 'bulk-assign'}
-                  className="bg-[#fbbf24]/20 hover:bg-[#fbbf24]/30 text-[#fbbf24] border border-[#fbbf24]/50 px-4 py-2 text-xs font-bold uppercase tracking-widest transition-colors rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-                >
-                  {updatingId === 'bulk-assign' ? 'Assigning...' : 'Assign All Unassigned'}
-                </button>
-                <button
-                  onClick={handleBulkUnassign}
-                  disabled={updatingId === 'bulk-unassign'}
-                  className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-4 py-2 text-xs font-bold uppercase tracking-widest transition-colors rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-                >
-                  {updatingId === 'bulk-unassign' ? 'Unassigning...' : 'Unassign All'}
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-white/40 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>
-              Showing {(() => {
-                let f = crmLeads;
-                if (fileFilter) f = f.filter(l => l.source_file === fileFilter);
-                if (cityFilter) f = f.filter(l => (l.city || "").toLowerCase().includes(cityFilter.toLowerCase()));
-                return f.length;
-              })()} leads
-            </p>
-          </div>
-        </div>
-
-        <div className="border border-[#fbbf24]/20 rounded-lg overflow-hidden" style={{ backgroundColor: "rgba(251,191,36,0.02)" }}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                {(() => {
-                  let filtered = crmLeads;
-                  if (fileFilter) filtered = filtered.filter(l => l.source_file === fileFilter);
-                  if (cityFilter) filtered = filtered.filter(l => (l.city || "").toLowerCase().includes(cityFilter.toLowerCase()));
-                  
-                  const allKeys = new Set<string>();
-                  for (const l of filtered.slice(0, 100)) {
-                    if (l.dynamic_data) {
-                      Object.keys(l.dynamic_data).forEach(k => {
-                        if (k !== 'Row COLOUR LEGEND' && k !== '#' && k !== 'Raw Lead' && !k.toLowerCase().includes('email')) {
-                          allKeys.add(k);
-                        }
-                      });
-                    }
-                  }
-                  const dynamicKeys = Array.from(allKeys).slice(0, 5);
-
-                  return (
-                    <tr className="border-b border-[#fbbf24]/20" style={{ backgroundColor: "rgba(251,191,36,0.05)" }}>
-                      <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Lead</th>
-                      {dynamicKeys.map(k => (
-                        <th key={k} className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest max-w-[150px] truncate" style={{ fontFamily: "'Barlow Condensed', sans-serif" }} title={k}>{k}</th>
-                      ))}
-                      <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Email</th>
-                      <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Status</th>
-                      <th className="p-4 text-[#fbbf24]/70 text-[10px] font-bold uppercase tracking-widest text-right" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Assign To Sales Rep</th>
-                    </tr>
-                  );
-                })()}
-              </thead>
-              <tbody>
-                {(() => {
-                  let filtered = crmLeads;
-                  if (fileFilter) filtered = filtered.filter(l => l.source_file === fileFilter);
-                  if (cityFilter) filtered = filtered.filter(l => (l.city || "").toLowerCase().includes(cityFilter.toLowerCase()));
-                  
-                  const allKeys = new Set<string>();
-                  for (const l of filtered.slice(0, 100)) {
-                    if (l.dynamic_data) {
-                      Object.keys(l.dynamic_data).forEach(k => {
-                        if (k !== 'Row COLOUR LEGEND' && k !== '#' && k !== 'Raw Lead' && !k.toLowerCase().includes('email')) {
-                          allKeys.add(k);
-                        }
-                      });
-                    }
-                  }
-                  const dynamicKeys = Array.from(allKeys).slice(0, 5);
-
-                  return filtered.map((l) => {
-                    const salesReps = users.filter(u => u.role === "sales");
-                    return (
-                    <tr key={l.id} className="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors group">
-                      <td className="p-4">
-                        <p className="text-white/90 text-sm font-semibold max-w-[200px] truncate" style={{ fontFamily: "'Inter', sans-serif" }}>{l.name}</p>
-                        {l.phone && <p className="text-white/60 text-xs mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>{l.phone}</p>}
-                        {l.website && (
-                          <a href={l.website.startsWith('http') ? l.website : `https://${l.website}`} target="_blank" rel="noreferrer" className="text-[#60c8ff] text-xs hover:underline mt-1 inline-block" style={{ fontFamily: "'Inter', sans-serif" }}>
-                            Website
-                          </a>
-                        )}
-                      </td>
-                      {dynamicKeys.map(k => (
-                        <td key={k} className="p-4">
-                          <p className="text-white/60 text-xs max-w-[150px] truncate" style={{ fontFamily: "'Inter', sans-serif" }} title={l.dynamic_data?.[k]}>
-                            {l.dynamic_data?.[k] || "—"}
-                          </p>
-                        </td>
-                      ))}
-                      <td className="p-4">
-                        {(() => {
-                          const emailKey = l.dynamic_data ? Object.keys(l.dynamic_data).find(k => k.toLowerCase().includes('email')) : null;
-                          const email = emailKey ? l.dynamic_data[emailKey] : null;
-                          return email ? (
-                            <p className="text-white/80 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>{email}</p>
-                          ) : (
-                            <span className="text-white/30 text-xs">—</span>
-                          );
-                        })()}
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider
-                          ${l.status === 'Converted' ? 'bg-[#34d399]/10 text-[#34d399]' : l.status === 'Follow-up' ? 'bg-[#60c8ff]/10 text-[#60c8ff]' : l.status === 'Not Converted' ? 'bg-[#f87171]/10 text-[#f87171]' : 'bg-white/10 text-white'}
-                        `} style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                          {l.status}
-                        </span>
-                      </td>
-                      <td className="p-4 text-right">
-                        {salesReps.length === 0 ? (
-                          <span className="text-white/30 text-xs">No sales reps available</span>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            <select
-                              value={l.assigned_to || ""}
-                              onChange={(e) => handleAssignCrmLead(l.id, e.target.value)}
-                              disabled={updatingId === `assign-crm-${l.id}`}
-                              className="bg-black/50 border border-[#fbbf24]/30 text-white text-xs px-3 py-1.5 outline-none rounded transition-colors"
-                              style={{ fontFamily: "'Inter', sans-serif" }}
-                            >
-                              <option value="">-- Unassigned --</option>
-                              {salesReps.map(rep => (
-                                <option key={rep.id} value={rep.id}>{rep.full_name}</option>
-                              ))}
-                            </select>
-                            {l.assigned_to && (
-                              <button
-                                onClick={() => handleAssignCrmLead(l.id, null)}
-                                disabled={updatingId === `assign-crm-${l.id}`}
-                                className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                                title="Unassign"
-                              >
-                                <X size={14} />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                  });
-                })()}
-                {(() => {
-                  let filtered = crmLeads;
-                  if (fileFilter) filtered = filtered.filter(l => l.source_file === fileFilter);
-                  if (cityFilter) filtered = filtered.filter(l => (l.city || "").toLowerCase().includes(cityFilter.toLowerCase()));
-                  
-                  if (filtered.length === 0) {
-                    return (
-                      <tr>
-                        <td colSpan={11} className="p-8 text-center text-white/30 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
-                          No CRM leads available for this selection.
-                        </td>
-                      </tr>
-                    );
-                  }
-                  return null;
-                })()}
-              </tbody>
-            </table>
-          </div>
-        </div>
-          </>
-        )}
-
-    </DashboardLayout>
+        </main>
+      </div>
+    </div>
   );
 }

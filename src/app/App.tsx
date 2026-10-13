@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Nav } from "@/app/components/Nav";
 import { Footer } from "@/app/components/Footer";
@@ -50,47 +51,65 @@ const pageVariants = {
 const DASHBOARD_PAGES: Page[] = ["auth", "client-dashboard", "developer-dashboard", "sales-dashboard", "admin-dashboard"];
 
 export default function App() {
+  const location = useLocation();
+  const routeNavigate = useNavigate();
   const [page, setPage] = useState<Page>("home");
   const [serviceIndex, setServiceIndex] = useState(0);
   const [scrollToDetail, setScrollToDetail] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [profileRole, setProfileRole] = useState<string | null>(null);
+
+  // Sync page state with current route
+  useEffect(() => {
+    let path = location.pathname.replace(/^\//, "");
+    if (!path) path = "home";
+    setPage(path as Page);
+  }, [location.pathname]);
 
   // ── SEO: update meta tags + JSON-LD on every page navigation ──
   useSEO(page);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       const u = session?.user ?? null;
       setUser(u);
+      
+      let pRole = u?.user_metadata?.role;
+      if (u) {
+        const { data: profile } = await supabase.from("profiles").select("role").eq("id", u.id).single();
+        if (profile?.role) pRole = profile.role;
+        setProfileRole(pRole);
+      }
+
       // If already logged in on mount and sitting on auth page, redirect to dashboard
       if (u) {
-        setPage((prev) => {
-          if (prev === "auth") {
-            const role = u.user_metadata?.role;
-            if (role === "admin") return "admin-dashboard";
-            if (role === "developer") return "developer-dashboard";
-            if (role === "sales") return "sales-dashboard";
-            return "client-dashboard";
-          }
-          return prev;
-        });
+        if (location.pathname === "/auth") {
+          if (pRole === "admin") routeNavigate("/admin-dashboard");
+          else if (pRole === "developer") routeNavigate("/developer-dashboard");
+          else if (pRole === "sales") routeNavigate("/sales-dashboard");
+          else routeNavigate("/client-dashboard");
+        }
       }
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const u = session?.user ?? null;
       setUser(u);
+      
+      let pRole = u?.user_metadata?.role;
+      if (u) {
+        const { data: profile } = await supabase.from("profiles").select("role").eq("id", u.id).single();
+        if (profile?.role) pRole = profile.role;
+        setProfileRole(pRole);
+      }
+
       // When auth state changes to logged-in while on auth page, redirect immediately
       if (u) {
-        setPage((prev) => {
-          if (prev === "auth") {
-            const role = u.user_metadata?.role;
-            if (role === "admin") return "admin-dashboard";
-            if (role === "developer") return "developer-dashboard";
-            if (role === "sales") return "sales-dashboard";
-            return "client-dashboard";
-          }
-          return prev;
-        });
+        if (location.pathname === "/auth") {
+          if (pRole === "admin") routeNavigate("/admin-dashboard");
+          else if (pRole === "developer") routeNavigate("/developer-dashboard");
+          else if (pRole === "sales") routeNavigate("/sales-dashboard");
+          else routeNavigate("/client-dashboard");
+        }
       }
     });
     return () => subscription.unsubscribe();
@@ -101,9 +120,9 @@ export default function App() {
       const idx = parseInt(p.split(":")[1], 10);
       setServiceIndex(isNaN(idx) ? 0 : idx);
       setScrollToDetail(true);
-      setPage("services");
+      routeNavigate("/services");
     } else if (p.startsWith("home:")) {
-      setPage("home");
+      routeNavigate("/");
       setTimeout(() => {
         const element = document.getElementById(p.split(":")[1]);
         if (element) {
@@ -112,25 +131,24 @@ export default function App() {
       }, 100);
     } else {
       if (p === "services") setScrollToDetail(false);
-      setPage(p as Page);
+      routeNavigate(p === "home" ? "/" : `/${p}`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
   const isDashboard = DASHBOARD_PAGES.includes(page);
 
-  const getDashboardPage = (u: typeof user): Page => {
-    const role = u?.user_metadata?.role;
-    if (role === "admin") return "admin-dashboard";
-    if (role === "developer") return "developer-dashboard";
-    if (role === "sales") return "sales-dashboard";
+  const getDashboardPage = (): Page => {
+    if (profileRole === "admin") return "admin-dashboard";
+    if (profileRole === "developer") return "developer-dashboard";
+    if (profileRole === "sales") return "sales-dashboard";
     return "client-dashboard";
   };
 
   const renderPage = () => {
     // If logged in and trying to view auth page, redirect to dashboard
     if (page === "auth" && user) {
-      const dp = getDashboardPage(user);
+      const dp = getDashboardPage();
       if (dp === "admin-dashboard") return <AdminDashboard onNavigate={navigate} />;
       if (dp === "developer-dashboard") return <DeveloperDashboard onNavigate={navigate} />;
       if (dp === "sales-dashboard") return <SalesDashboard onNavigate={navigate} />;
@@ -172,7 +190,7 @@ export default function App() {
       {/* ── JSON-LD Structured Data (injected into <head> via dangerouslySetInnerHTML) ── */}
       <StructuredData page={page} />
 
-      <Nav currentPage={page} onNavigate={navigate} user={user} />
+      <Nav currentPage={page} onNavigate={navigate} user={user} userRole={profileRole} />
 
       <AnimatePresence mode="wait">
         <motion.main

@@ -17,6 +17,7 @@ export interface Profile {
   full_name: string | null;
   company_name: string | null;
   phone: string | null;
+  google_sheet_url?: string | null;
   created_at: string;
 }
 

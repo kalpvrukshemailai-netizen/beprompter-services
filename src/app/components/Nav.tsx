@@ -162,26 +162,28 @@ function ArcItem({ item, i, isActive, vp, onGo, onOpenSub }: {
 }
 
 /* ─── Single wheel item — tracks by label identity, slides to new arc position ─── */
-function WheelItem({ x, y, label, page, slotIdx, wheelDir, onGo }: {
+function WheelItem({ x, y, label, page, slotIdx, renderCount, wheelDir, onGo }: {
   x: number; y: number; label: string; page: string; slotIdx: number;
+  renderCount: number;
   wheelDir: 1 | -1;
   onGo: (page: string) => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const opacity = slotIdx === 0 || slotIdx === VISIBLE - 1 ? 0.4
-    : slotIdx === 1 || slotIdx === VISIBLE - 2 ? 0.65 : 1;
+  const opacity = renderCount <= 5 ? 1 
+    : slotIdx === 0 || slotIdx === renderCount - 1 ? 0.4
+    : slotIdx === 1 || slotIdx === renderCount - 2 ? 0.65 : 1;
 
   return (
     <motion.div
-      layoutId={`wheel-${label}`}
-      style={{ position: "absolute", left: x, top: y, x: "-50%", y: "-50%" }}
-      initial={{ opacity: 0, scale: 0.6 }}
-      animate={{ opacity, scale: 1 }}
+      style={{ position: "absolute", x: "-50%", y: "-50%" }}
+      initial={{ opacity: 0, scale: 0.6, left: x, top: y }}
+      animate={{ opacity, scale: 1, left: x, top: y }}
       exit={{ opacity: 0, scale: 0.6, y: wheelDir === 1 ? "-120%" : "20%" }}
       transition={{
-        layout: { type: "spring", stiffness: 320, damping: 32 },
         opacity: { duration: 0.25 },
         scale: { duration: 0.25 },
+        left: { type: "spring", stiffness: 320, damping: 32 },
+        top: { type: "spring", stiffness: 320, damping: 32 }
       }}
     >
       <motion.button
@@ -308,9 +310,10 @@ interface NavProps {
   currentPage: string;
   onNavigate: (page: string) => void;
   user?: SupabaseUser | null;
+  userRole?: string | null;
 }
 
-export function Nav({ currentPage, onNavigate, user }: NavProps) {
+export function Nav({ currentPage, onNavigate, user, userRole }: NavProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
@@ -341,6 +344,7 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
   // Back-button / swipe-back integration
   useEffect(() => {
     if (menuOpen) {
+      document.body.style.overflow = "hidden";
       history.pushState({ bpMenu: true }, "");
       menuHistoryRef.current = true;
 
@@ -352,8 +356,12 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
         setOffset(0);
       };
       window.addEventListener("popstate", onPop, { once: true });
-      return () => window.removeEventListener("popstate", onPop);
+      return () => {
+        window.removeEventListener("popstate", onPop);
+        document.body.style.overflow = "";
+      };
     } else {
+      document.body.style.overflow = "";
       if (menuHistoryRef.current) {
         menuHistoryRef.current = false;
         history.back();
@@ -418,8 +426,9 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
   const START_ANGLE = 130;
   const END_ANGLE = 228;
 
-  const arcPositions = Array.from({ length: VISIBLE }, (_, i) => {
-    const t = i / (VISIBLE - 1);
+  const renderCount = Math.min(VISIBLE, Math.max(1, total));
+  const arcPositions = Array.from({ length: renderCount }, (_, i) => {
+    const t = renderCount === 1 ? 0.5 : i / (renderCount - 1);
     const deg = START_ANGLE + (END_ANGLE - START_ANGLE) * t;
     const rad = (deg * Math.PI) / 180;
     return { x: cx + Math.cos(rad) * radius, y: cy + Math.sin(rad) * radius };
@@ -437,7 +446,7 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
     if (!subOpen || scrollCooldown.current) return;
     rotate(e.deltaY > 0 ? 1 : -1);
     scrollCooldown.current = true;
-    setTimeout(() => { scrollCooldown.current = false; }, 400);
+    setTimeout(() => { scrollCooldown.current = false; }, 700);
   };
   const onTouchStart = (e: React.TouchEvent) => {
     if (subOpen) dragStartY.current = e.touches[0].clientY;
@@ -545,8 +554,11 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
             {user ? (
               <motion.button
                 onClick={() => {
-                  const role = user.user_metadata?.role;
-                  go(role === "partner" ? "partner-dashboard" : "client-dashboard");
+                  const role = userRole || user.user_metadata?.role;
+                  if (role === "admin") go("admin-dashboard");
+                  else if (role === "developer") go("developer-dashboard");
+                  else if (role === "sales") go("sales-dashboard");
+                  else go("client-dashboard");
                 }}
                 className="flex items-center gap-2 border border-white/15 hover:border-white/40 px-3 py-2 transition-colors"
                 style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
@@ -643,24 +655,23 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
             </AnimatePresence>
 
             {/* ── SUB WHEEL — items keyed by label so they slide between positions ── */}
-            <LayoutGroup>
-              <AnimatePresence>
-                {subOpen && total > 0 && arcPositions.map((pos, slotIdx) => {
-                  const item = mobileSubItems[(offset + slotIdx) % total];
-                  return (
-                    <WheelItem
-                      key={item.label}
-                      slotIdx={slotIdx}
-                      x={pos.x} y={pos.y}
-                      label={item.label}
-                      page={item.page}
-                      wheelDir={wheelDir}
-                      onGo={go}
-                    />
-                  );
-                })}
-              </AnimatePresence>
-            </LayoutGroup>
+            <AnimatePresence>
+              {subOpen && total > 0 && arcPositions.map((pos, slotIdx) => {
+                const item = mobileSubItems[(offset + slotIdx) % total];
+                return (
+                  <WheelItem
+                    key={item.label}
+                    slotIdx={slotIdx}
+                    renderCount={renderCount}
+                    x={pos.x} y={pos.y}
+                    label={item.label}
+                    page={item.page}
+                    wheelDir={wheelDir}
+                    onGo={go}
+                  />
+                );
+              })}
+            </AnimatePresence>
 
             {/* Wheel controls — shown in sub-menu */}
             <AnimatePresence>
@@ -701,7 +712,15 @@ export function Nav({ currentPage, onNavigate, user }: NavProps) {
                 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 transition={{ delay: 0.55 }}
                 whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>{"Let's Talk"}</motion.button>
-              <motion.button onClick={() => go(user ? (user.user_metadata?.role === "partner" ? "partner-dashboard" : "client-dashboard") : "auth")}
+              <motion.button onClick={() => {
+                if (user) {
+                  const role = userRole || user.user_metadata?.role;
+                  if (role === "admin") go("admin-dashboard");
+                  else if (role === "developer") go("developer-dashboard");
+                  else if (role === "sales") go("sales-dashboard");
+                  else go("client-dashboard");
+                } else go("auth");
+              }}
                 className="text-white/40 hover:text-white text-xs font-bold uppercase tracking-widest transition-colors"
                 style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
