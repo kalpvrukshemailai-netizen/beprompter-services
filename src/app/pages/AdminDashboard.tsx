@@ -15,6 +15,11 @@ import { AdminWorkspaces } from "./admin/tabs/AdminWorkspaces";
 import { AdminProjects } from "./admin/tabs/AdminProjects";
 import { AdminLeads } from "./admin/tabs/AdminLeads";
 import { AdminCrm } from "./admin/tabs/AdminCrm";
+import { AdminConversations } from "./admin/tabs/AdminConversations";
+import { AdminAiOps } from "./admin/tabs/AdminAiOps";
+import { AdminBilling } from "./admin/tabs/AdminBilling";
+import { AdminSecurity } from "./admin/tabs/AdminSecurity";
+import { AdminSettings } from "./admin/tabs/AdminSettings";
 
 type AdminTab = "overview" | "users" | "workspaces" | "projects" | "leads" | "crm" | "conversations" | "ai-ops" | "billing" | "security" | "settings";
 
@@ -464,15 +469,14 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
                 crmLeads={crmLeads} users={users} uploadingCsv={uploadingCsv} fileFilter={fileFilter} cityFilter={cityFilter} bulkAssignRep={bulkAssignRep} updatingId={updatingId}
                 setFileFilter={setFileFilter} setCityFilter={setCityFilter} setBulkAssignRep={setBulkAssignRep} handleCsvUpload={handleCsvUpload} handleRemoveDuplicates={handleRemoveDuplicates}
                 handleDeleteFileLeads={handleDeleteFileLeads} handleBulkAssign={handleBulkAssign} handleBulkUnassign={handleBulkUnassign}
+                onRefreshLeads={fetchCrmLeads}
               />
             )}
-            {["conversations", "ai-ops", "billing", "security", "settings"].includes(activeTab) && (
-              <div className="p-10 text-center text-white/40 flex flex-col items-center justify-center h-[50vh]">
-                <Settings size={32} className="mb-4 opacity-20" />
-                <h2 className="text-xl mb-2 text-white/80" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Module in development</h2>
-                <p className="text-sm">This administrative interface is being built according to the new design system.</p>
-              </div>
-            )}
+            {activeTab === "conversations" && <AdminConversations />}
+            {activeTab === "ai-ops" && <AdminAiOps />}
+            {activeTab === "billing" && <AdminBilling />}
+            {activeTab === "security" && <AdminSecurity />}
+            {activeTab === "settings" && <AdminSettings />}
           </ErrorBoundary>
         </main>
       </div>
