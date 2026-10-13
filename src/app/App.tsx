@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Nav } from "@/app/components/Nav";
 import { Footer } from "@/app/components/Footer";
+import { ErrorBoundary } from "@/app/components/ErrorBoundary";
 import { HomePage } from "@/app/pages/HomePage";
 import { RealEstateIndustryPage } from "@/app/pages/RealEstateIndustryPage";
 import { AboutPage } from "@/app/pages/AboutPage";
@@ -200,7 +201,9 @@ export default function App() {
           animate="animate"
           exit="exit"
         >
-          {renderPage()}
+          <ErrorBoundary key={page}>
+            {renderPage()}
+          </ErrorBoundary>
         </motion.main>
       </AnimatePresence>
 
