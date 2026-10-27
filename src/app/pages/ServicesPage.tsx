@@ -194,9 +194,29 @@ const SERVICES = [
   }
 ];
 
-export function ServicesPage({ onNavigate }: { onNavigate: (p: string) => void }) {
-  const [active, setActive] = useState(0);
-  const srv = SERVICES[active];
+export function ServicesPage({ 
+  onNavigate, 
+  initialServiceIndex = 0, 
+  scrollToDetail = false 
+}: { 
+  onNavigate: (p: string) => void;
+  initialServiceIndex?: number;
+  scrollToDetail?: boolean;
+}) {
+  const [active, setActive] = useState(initialServiceIndex);
+  const detailRef = useRef<HTMLDivElement>(null);
+  const srv = SERVICES[active] || SERVICES[0];
+
+  useEffect(() => {
+    if (typeof initialServiceIndex === "number" && initialServiceIndex >= 0 && initialServiceIndex < SERVICES.length) {
+      setActive(initialServiceIndex);
+      if (scrollToDetail && detailRef.current) {
+        setTimeout(() => {
+          detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 80);
+      }
+    }
+  }, [initialServiceIndex, scrollToDetail]);
 
   return (
     <div className="bg-black text-white selection:bg-white selection:text-black min-h-screen pt-24">
@@ -224,7 +244,7 @@ export function ServicesPage({ onNavigate }: { onNavigate: (p: string) => void }
       </section>
 
       {/* ── SERVICE DETAIL ── */}
-      <section className="bg-[#050505]">
+      <section ref={detailRef} id="service-detail" className="bg-[#050505]">
         <div className="max-w-7xl mx-auto px-6 py-16 lg:py-24">
           {/* Tab strip */}
           <div className="flex overflow-x-auto gap-2 mb-16 pb-4 border-b border-white/10 scrollbar-hide">

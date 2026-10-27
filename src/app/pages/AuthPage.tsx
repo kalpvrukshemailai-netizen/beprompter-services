@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Eye, EyeOff, Loader2, CheckCircle, AlertCircle, Mail } from "lucide-react";
-import { supabase, UserRole, Profile } from "@/lib/supabase";
+import { supabase, UserRole, Profile, resolveUserRole, isAdminEmail } from "@/lib/supabase";
 
 type Mode = "signin" | "signup";
 
@@ -282,17 +282,17 @@ export function AuthPage({ onNavigate, defaultRole = "client", defaultMode = "si
     // Fetch user profile to determine correct dashboard
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-      const userRole = profile?.role || role;
+      const { data: profile } = await supabase.from("profiles").select("role").or(`id.eq.${user.id},email.eq.${user.email}`).maybeSingle();
+      const userRole = resolveUserRole(user.email, profile?.role || role, user.user_metadata?.role);
       
       setTimeout(() => {
-        if (userRole === "admin") onNavigate("admin-dashboard");
+        if (userRole === "admin" || isAdminEmail(user.email)) onNavigate("admin-dashboard");
         else if (userRole === "developer") onNavigate("developer-dashboard");
         else if (userRole === "sales") onNavigate("sales-dashboard");
         else onNavigate("client-dashboard");
-      }, 1200);
+      }, 800);
     } else {
-      setTimeout(() => onNavigate("client-dashboard"), 1200);
+      setTimeout(() => onNavigate("client-dashboard"), 800);
     }
   };
 

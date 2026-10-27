@@ -8,7 +8,7 @@ import {
   ExternalLink, Send, ArrowUpRight, ShieldCheck, CheckCheck, Globe, CheckCircle,
   AlertTriangle, Lock
 } from "lucide-react";
-import { supabase, Profile } from "@/lib/supabase";
+import { supabase, Profile, resolveUserRole, isAdminEmail, ADMIN_EMAILS } from "@/lib/supabase";
 import Papa from "papaparse";
 
 const SIDEBAR_NAV = [
@@ -335,8 +335,15 @@ export function ClientDashboard({ onNavigate }: { onNavigate: (p: string) => voi
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { onNavigate("auth"); return; }
-      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
       
+      const { data } = await supabase.from("profiles").select("*").or(`id.eq.${user.id},email.eq.${user.email}`).maybeSingle();
+      
+      const role = resolveUserRole(user.email, user.user_metadata?.role, data?.role);
+      if (role === "admin" || isAdminEmail(user.email)) {
+        onNavigate("admin-dashboard");
+        return;
+      }
+
       setProfile(data as Profile ?? { id: user.id, role: "client", full_name: user.email });
       setLoading(false);
     })();
@@ -646,6 +653,21 @@ export function ClientDashboard({ onNavigate }: { onNavigate: (p: string) => voi
             {profile?.company_name || profile?.full_name || "Workspace"}
           </p>
         </div>
+
+        {(resolveUserRole(profile?.email, profile?.role) === "admin" || isAdminEmail(profile?.email)) && (
+          <div className="mx-4 mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs flex flex-col gap-2">
+            <div className="flex items-center gap-1.5 text-red-400 font-semibold text-[11px]">
+              <ShieldCheck size={14} />
+              <span>Admin Account Active</span>
+            </div>
+            <button
+              onClick={() => onNavigate("admin-dashboard")}
+              className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-300 py-1.5 px-2 rounded text-[11px] font-bold tracking-wider uppercase transition-colors cursor-pointer"
+            >
+              Open Admin Panel ↗
+            </button>
+          </div>
+        )}
         
         <div className="p-4">
           <p className={`text-[10px] font-bold uppercase tracking-widest mb-3 px-3 ${t.textSubtle}`}>Workspace Navigation</p>

@@ -1,11 +1,14 @@
+
 import React, { useState, useMemo } from "react";
-import { 
-  Trash2, FileUp, FileText, ArrowLeft, RefreshCw, 
-  Phone, User, CheckCircle2, Clock, XCircle, AlertCircle, 
+import {
+  Trash2, FileUp, FileText, ArrowLeft, RefreshCw,
+  Phone, User, CheckCircle2, Clock, XCircle, AlertCircle,
   Search, Filter, ChevronDown, Check, ArrowRight, TrendingUp,
   BarChart2, Award, Calendar, MessageSquare, Edit3
 } from "lucide-react";
-import { Profile, supabase } from "@/lib/supabase";
+import { Profile, supabase, deduplicateProfiles, isLeadAssignedToRep, ADMIN_EMAILS } from "@/lib/supabase";
+import { logAuditEvent } from "@/lib/auditLog";
+import { INITIAL_OPERATIONAL_LEADS } from "@/lib/operationalLeads";
 
 interface AdminCrmProps {
   crmLeads: any[];
@@ -26,44 +29,73 @@ interface AdminCrmProps {
   onRefreshLeads?: () => void;
 }
 
-// Built-in realistic sample leads if database is empty so Admin has immediate operational visibility
-const SAMPLE_CRM_LEADS = [
-  { id: "lead-01", name: "Vikram Malhotra", phone: "+91 98201 44521", city: "Mumbai", status: "Converted", assigned_to: "rep-1", source_file: "South_Mumbai_HNI_Investors.csv", notes: "Bought 3 BHK sea view unit at Meridian Skyline. ₹3.2 Cr.", created_at: "2026-10-10T10:00:00Z" },
-  { id: "lead-02", name: "Ananya Deshmukh", phone: "+91 98190 23411", city: "Pune", status: "Follow-up", assigned_to: "rep-1", source_file: "Pune_Prelaunch_Direct.csv", notes: "Requested site visit for Sunday 11 AM with husband.", created_at: "2026-10-11T11:30:00Z" },
-  { id: "lead-03", name: "Rajesh Kulkarni", phone: "+91 97690 99823", city: "Mumbai", status: "Not Answered", assigned_to: "rep-1", source_file: "South_Mumbai_HNI_Investors.csv", notes: "Ringing no response (RNR). Tried twice at 2 PM and 5 PM.", created_at: "2026-10-11T14:15:00Z" },
-  { id: "lead-04", name: "Sunil Mehta", phone: "+91 99200 11200", city: "Thane", status: "Converted", assigned_to: "rep-2", source_file: "Thane_Commercial_Buyers.csv", notes: "Lease contract finalized for 2,400 sq.ft office.", created_at: "2026-10-09T09:00:00Z" },
-  { id: "lead-05", name: "Kavita Reddy", phone: "+91 98490 88219", city: "Hyderabad", status: "Follow-up", assigned_to: "rep-2", source_file: "Hyderabad_Villa_Leads.csv", notes: "Needs floor plan comparative matrix. Call back Friday.", created_at: "2026-10-12T15:20:00Z" },
-  { id: "lead-06", name: "Amitabh Sen", phone: "+91 98301 77412", city: "Mumbai", status: "Not Answered", assigned_to: "rep-2", source_file: "South_Mumbai_HNI_Investors.csv", notes: "Call went to voicemail.", created_at: "2026-10-12T16:00:00Z" },
-  { id: "lead-07", name: "Rohan Singhania", phone: "+91 98110 33491", city: "Delhi NCR", status: "Converted", assigned_to: "rep-3", source_file: "Delhi_Luxury_Floors.csv", notes: "Token advance of ₹5L received for Golf Course Ext flat.", created_at: "2026-10-08T12:00:00Z" },
-  { id: "lead-08", name: "Pooja Agarwal", phone: "+91 99100 44812", city: "Gurugram", status: "New", assigned_to: "rep-3", source_file: "Delhi_Luxury_Floors.csv", notes: "Fresh lead assigned, call pending.", created_at: "2026-10-13T09:15:00Z" },
-  { id: "lead-09", name: "Deepak Chawla", phone: "+91 98711 55290", city: "Gurugram", status: "Not Converted", assigned_to: "rep-3", source_file: "Delhi_Luxury_Floors.csv", notes: "Budget below ₹1.5 Cr, our project starts at ₹2.8 Cr.", created_at: "2026-10-10T17:45:00Z" },
-  { id: "lead-10", name: "Suresh Pillai", phone: "+91 98401 22910", city: "Bengaluru", status: "Follow-up", assigned_to: "rep-1", source_file: "Bengaluru_IT_Corridor.csv", notes: "Interested in Phase 2 pre-booking, waiting for RERA approval.", created_at: "2026-10-12T11:00:00Z" },
-  { id: "lead-11", name: "Nitin Joshi", phone: "+91 98220 77102", city: "Pune", status: "New", assigned_to: "rep-2", source_file: "Pune_Prelaunch_Direct.csv", notes: "Assigned today, initial outreach pending.", created_at: "2026-10-13T08:30:00Z" },
-  { id: "lead-12", name: "Meera Bansal", phone: "+91 98102 99401", city: "Delhi NCR", status: "Converted", assigned_to: "rep-3", source_file: "Delhi_Luxury_Floors.csv", notes: "Booked 4 BHK with terrace garden. Deal closed.", created_at: "2026-10-09T14:00:00Z" },
-  { id: "lead-13", name: "Gaurav Kapoor", phone: "+91 99203 11849", city: "Mumbai", status: "Not Answered", assigned_to: "rep-1", source_file: "South_Mumbai_HNI_Investors.csv", notes: "Busy on call, follow up tomorrow morning.", created_at: "2026-10-12T18:00:00Z" },
-  { id: "lead-14", name: "Harish Iyer", phone: "+91 98450 66120", city: "Bengaluru", status: "Follow-up", assigned_to: "rep-2", source_file: "Bengaluru_IT_Corridor.csv", notes: "Client traveling till Thursday. Call on Friday 3 PM.", created_at: "2026-10-11T16:30:00Z" },
-  { id: "lead-15", name: "Tarun Batra", phone: "+91 98111 88200", city: "Noida", status: "New", assigned_to: "rep-3", source_file: "Delhi_Luxury_Floors.csv", notes: "Assigned, awaiting first contact attempt.", created_at: "2026-10-13T10:00:00Z" }
-];
-
-export function AdminCrm({ 
-  crmLeads, users, uploadingCsv, fileFilter, cityFilter, bulkAssignRep, updatingId,
-  setFileFilter, setCityFilter, setBulkAssignRep, handleCsvUpload, handleRemoveDuplicates,
-  handleDeleteFileLeads, handleBulkAssign, handleBulkUnassign, onRefreshLeads
+export function AdminCrm({
+  crmLeads = [],
+  users = [],
+  uploadingCsv,
+  fileFilter,
+  cityFilter,
+  bulkAssignRep,
+  updatingId,
+  setFileFilter,
+  setCityFilter,
+  setBulkAssignRep,
+  handleCsvUpload,
+  handleRemoveDuplicates,
+  handleDeleteFileLeads,
+  handleBulkAssign,
+  handleBulkUnassign,
+  onRefreshLeads
 }: AdminCrmProps) {
-  // Use DB leads or graceful fallback so Admin has full immediate visibility
+  const CRM_LEADS_STORAGE_KEY = "beprompter_crm_leads_v6";
+
+  // Sanitize any false legacy assignments
+  const sanitizeLeads = (list: any[]) => {
+    return (list || []).map(l => {
+      if (l.assigned_to && (String(l.assigned_to).includes("garv") || String(l.assigned_to).includes("ranjeet"))) {
+        return {
+          ...l,
+          assigned_to: null,
+          status: "New",
+          notes: (l.dynamic_data && l.dynamic_data.Firm) ? l.dynamic_data.Firm : (l.firm_type || ""),
+          services_wanted: "",
+          budget_constraints: "",
+          objections: ""
+        };
+      }
+      return l;
+    });
+  };
+
+  // Real leads strictly from database or operational state
   const [localLeads, setLocalLeads] = useState<any[]>(() => {
-    return crmLeads && crmLeads.length > 0 ? crmLeads : SAMPLE_CRM_LEADS;
+    if (crmLeads && crmLeads.length > 0) return sanitizeLeads(crmLeads);
+    try {
+      const cached = localStorage.getItem(CRM_LEADS_STORAGE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return sanitizeLeads(parsed);
+      }
+    } catch (e) { }
+    return sanitizeLeads(INITIAL_OPERATIONAL_LEADS);
   });
 
-  // Reps list (from users or defaults)
+  React.useEffect(() => {
+    localStorage.removeItem("beprompter_crm_leads_v5");
+    localStorage.removeItem("beprompter_crm_leads_v4");
+    localStorage.removeItem("beprompter_crm_leads_v3");
+    localStorage.removeItem("beprompter_crm_leads_v2");
+    localStorage.removeItem("beprompter_crm_leads");
+  }, []);
+
+  // Sales reps list strictly deduplicated and filtered for role === 'sales' (including Namita)
   const salesReps = useMemo(() => {
-    const fromUsers = users.filter(u => u.role === "sales");
-    if (fromUsers.length > 0) return fromUsers;
-    return [
-      { id: "rep-1", full_name: "Rahul Verma", email: "rahul.sales@beprompter.services", role: "sales" as const, created_at: "" },
-      { id: "rep-2", full_name: "Priya Nair", email: "priya.sales@beprompter.services", role: "sales" as const, created_at: "" },
-      { id: "rep-3", full_name: "Amit Sharma", email: "amit.sales@beprompter.services", role: "sales" as const, created_at: "" }
-    ];
+    const cleanUsers = deduplicateProfiles(users);
+    const reps = cleanUsers.filter(u =>
+      u.role === "sales" ||
+      (u.email && u.email.toLowerCase() === "namitakumari4000@gmail.com")
+    );
+    return reps;
   }, [users]);
 
   // Filters
@@ -77,11 +109,11 @@ export function AdminCrm({
   // Sync when prop crmLeads changes
   React.useEffect(() => {
     if (crmLeads && crmLeads.length > 0) {
-      setLocalLeads(crmLeads);
+      setLocalLeads(sanitizeLeads(crmLeads));
     }
   }, [crmLeads]);
 
-  // Overall Performance Aggregates
+  // Overall Performance Aggregates from real leads
   const performanceStats = useMemo(() => {
     const total = localLeads.length;
     const assigned = localLeads.filter(l => l.assigned_to).length;
@@ -96,10 +128,10 @@ export function AdminCrm({
     return { total, assigned, callsDone, pendingCalls, followups, converted, notAnswered, notConverted, conversionRate };
   }, [localLeads]);
 
-  // Per-Sales-Rep Performance Breakdown
+  // Per-Sales-Rep Performance Breakdown matching rep ID or rep Email
   const repPerformance = useMemo(() => {
     return salesReps.map(rep => {
-      const repLeads = localLeads.filter(l => l.assigned_to === rep.id);
+      const repLeads = localLeads.filter(l => isLeadAssignedToRep(l.assigned_to, rep));
       const assignedCount = repLeads.length;
       const callsDoneCount = repLeads.filter(l => l.status && l.status !== "New").length;
       const pendingCount = repLeads.filter(l => !l.status || l.status === "New").length;
@@ -123,33 +155,81 @@ export function AdminCrm({
     });
   }, [salesReps, localLeads]);
 
+  // Source files list
+  const availableSourceFiles = useMemo(() => {
+    return Array.from(new Set(localLeads.map(l => l.source_file).filter(Boolean))).sort();
+  }, [localLeads]);
+
+  // Cities dynamically filtered according to selected fileFilter
+  const availableCities = useMemo(() => {
+    const leadsInScope = fileFilter 
+      ? localLeads.filter(l => l.source_file === fileFilter) 
+      : localLeads;
+    
+    const citySet = new Set<string>();
+    leadsInScope.forEach(l => {
+      if (l.city && typeof l.city === "string") {
+        const trimmed = l.city.trim();
+        if (trimmed && trimmed !== "·" && trimmed !== "-" && !trimmed.includes("@")) {
+          citySet.add(trimmed);
+        }
+      }
+    });
+
+    return Array.from(citySet).sort((a, b) => a.localeCompare(b));
+  }, [localLeads, fileFilter]);
+
+  // If the active cityFilter doesn't exist in the current file scope, reset it
+  React.useEffect(() => {
+    if (cityFilter && !availableCities.includes(cityFilter)) {
+      setCityFilter("");
+    }
+  }, [availableCities, cityFilter, setCityFilter]);
+
   // Filtered Leads
   const filteredLeads = useMemo(() => {
     return localLeads.filter(l => {
       if (fileFilter && l.source_file !== fileFilter) return false;
-      if (cityFilter && (l.city || "").toLowerCase() !== cityFilter.toLowerCase()) return false;
-      if (selectedRepFilter !== "all" && l.assigned_to !== selectedRepFilter) return false;
+      if (cityFilter && (l.city || "").trim().toLowerCase() !== cityFilter.trim().toLowerCase()) return false;
+      if (selectedRepFilter !== "all") {
+        const rep = salesReps.find(r => r.id === selectedRepFilter || r.email.toLowerCase() === selectedRepFilter.toLowerCase());
+        if (rep) {
+          if (!isLeadAssignedToRep(l.assigned_to, rep)) return false;
+        } else if (l.assigned_to !== selectedRepFilter) {
+          return false;
+        }
+      }
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return (l.name || "").toLowerCase().includes(q) ||
-               (l.phone || "").includes(q) ||
-               (l.city || "").toLowerCase().includes(q) ||
-               (l.notes || "").toLowerCase().includes(q);
+          (l.phone || "").includes(q) ||
+          (l.city || "").toLowerCase().includes(q) ||
+          (l.notes || "").toLowerCase().includes(q);
       }
       return true;
     });
-  }, [localLeads, fileFilter, cityFilter, selectedRepFilter, statusFilter, searchQuery]);
+  }, [localLeads, fileFilter, cityFilter, selectedRepFilter, salesReps, statusFilter, searchQuery]);
 
-  // Update status handler (updates local state & Supabase)
+  // Update status handler (updates local state & Supabase & localStorage)
   const handleUpdateLeadStatus = async (leadId: string, newStatus: string) => {
     setStatusUpdatingId(leadId);
-    
+
     // Update local state immediately
-    setLocalLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
+    setLocalLeads(prev => {
+      const updated = prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l);
+      localStorage.setItem(CRM_LEADS_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
 
     try {
       await supabase.from("crm_leads").update({ status: newStatus }).eq("id", leadId);
+      logAuditEvent({
+        action: `Lead Status Updated -> ${newStatus}`,
+        resource: `crm_lead:${leadId}`,
+        severity: "low"
+      });
+      if (onRefreshLeads) onRefreshLeads();
     } catch (err) {
       console.warn("Could not sync status to database:", err);
     } finally {
@@ -159,9 +239,21 @@ export function AdminCrm({
 
   // Reassign single lead
   const handleReassignLead = async (leadId: string, repId: string) => {
-    setLocalLeads(prev => prev.map(l => l.id === leadId ? { ...l, assigned_to: repId || null } : l));
+    setLocalLeads(prev => {
+      const updated = prev.map(l => l.id === leadId ? { ...l, assigned_to: repId || null } : l);
+      localStorage.setItem(CRM_LEADS_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
     try {
       await supabase.from("crm_leads").update({ assigned_to: repId || null }).eq("id", leadId);
+      const rep = salesReps.find(r => r.id === repId);
+      logAuditEvent({
+        action: `Lead Reassigned -> ${rep?.full_name || 'Unassigned'}`,
+        resource: `crm_lead:${leadId}`,
+        severity: "low"
+      });
+      if (onRefreshLeads) onRefreshLeads();
     } catch (e) {
       console.warn("Could not sync assignment to db:", e);
     }
@@ -170,10 +262,16 @@ export function AdminCrm({
   // Save quick note
   const handleSaveNote = async (leadId: string) => {
     if (!quickNote.trim()) return;
-    setLocalLeads(prev => prev.map(l => l.id === leadId ? { ...l, notes: quickNote.trim() } : l));
+    setLocalLeads(prev => {
+      const updated = prev.map(l => l.id === leadId ? { ...l, notes: quickNote.trim() } : l);
+      localStorage.setItem(CRM_LEADS_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
     try {
       await supabase.from("crm_leads").update({ notes: quickNote.trim() }).eq("id", leadId);
-    } catch (e) {}
+      if (onRefreshLeads) onRefreshLeads();
+    } catch (e) { }
     if (activeLeadModal && activeLeadModal.id === leadId) {
       setActiveLeadModal({ ...activeLeadModal, notes: quickNote.trim() });
     }
@@ -196,7 +294,7 @@ export function AdminCrm({
           </p>
         </div>
         <div className="flex gap-2">
-          <button 
+          <button
             onClick={handleRemoveDuplicates}
             disabled={uploadingCsv}
             className={`flex items-center gap-2 bg-[#f87171]/10 hover:bg-[#f87171]/20 border border-[#f87171]/30 text-[#f87171] px-4 py-2 text-xs font-bold uppercase tracking-widest transition-colors cursor-pointer rounded ${uploadingCsv ? 'opacity-50 pointer-events-none' : ''}`}
@@ -327,13 +425,12 @@ export function AdminCrm({
                       </span>
                     </td>
                     <td className="p-3.5 pr-5 text-right">
-                      <button 
+                      <button
                         onClick={() => setSelectedRepFilter(isSelected ? "all" : rep.id)}
-                        className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
-                          isSelected 
-                            ? 'bg-[#fbbf24] text-black' 
-                            : 'border border-white/15 text-white/70 hover:text-white hover:bg-white/5'
-                        }`}
+                        className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer ${isSelected
+                          ? 'bg-[#fbbf24] text-black'
+                          : 'border border-white/15 text-white/70 hover:text-white hover:bg-white/5'
+                          }`}
                       >
                         {isSelected ? "Showing Rep" : "Filter Rep"}
                       </button>
@@ -341,6 +438,13 @@ export function AdminCrm({
                   </tr>
                 );
               })}
+              {repPerformance.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="p-6 text-center text-white/40 text-xs">
+                    No sales representatives configured yet. Assign team members the "sales" role in Users & Roles.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -351,8 +455,8 @@ export function AdminCrm({
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Search by name, phone, notes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -361,10 +465,10 @@ export function AdminCrm({
           </div>
 
           {/* Rep filter */}
-          <select 
+          <select
             value={selectedRepFilter}
             onChange={(e) => setSelectedRepFilter(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none"
+            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none cursor-pointer"
           >
             <option value="all" className="bg-[#111]">All Sales Reps</option>
             {salesReps.map(r => (
@@ -373,10 +477,10 @@ export function AdminCrm({
           </select>
 
           {/* Status filter */}
-          <select 
+          <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none"
+            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none cursor-pointer"
           >
             <option value="all" className="bg-[#111]">All Call Outcomes</option>
             <option value="New" className="bg-[#111]">New / Pending</option>
@@ -386,34 +490,39 @@ export function AdminCrm({
             <option value="Not Converted" className="bg-[#111]">Not Converted</option>
           </select>
 
-          {/* City filter */}
-          <select 
-            value={cityFilter}
-            onChange={(e) => setCityFilter(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none"
-          >
-            <option value="" className="bg-[#111]">All Cities</option>
-            {Array.from(new Set(localLeads.map(l => l.city).filter(Boolean))).sort().map(c => (
-              <option key={c} value={c} className="bg-[#111]">{c}</option>
-            ))}
-          </select>
-
           {/* Source file filter */}
-          {Array.from(new Set(localLeads.map(l => l.source_file).filter(Boolean))).length > 0 && (
-            <select 
+          {availableSourceFiles.length > 0 && (
+            <select
               value={fileFilter}
-              onChange={(e) => setFileFilter(e.target.value)}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none max-w-[180px] truncate"
+              onChange={(e) => {
+                setFileFilter(e.target.value);
+                setCityFilter("");
+              }}
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none max-w-[200px] truncate cursor-pointer"
             >
               <option value="" className="bg-[#111]">All Source Files</option>
-              {Array.from(new Set(localLeads.map(l => l.source_file).filter(Boolean))).sort().map(f => (
+              {availableSourceFiles.map(f => (
                 <option key={f} value={f} className="bg-[#111]">{f}</option>
               ))}
             </select>
           )}
 
+          {/* City filter */}
+          <select
+            value={cityFilter}
+            onChange={(e) => setCityFilter(e.target.value)}
+            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none cursor-pointer"
+          >
+            <option value="" className="bg-[#111]">
+              {fileFilter ? `All Cities in File (${availableCities.length})` : "All Cities"}
+            </option>
+            {availableCities.map(c => (
+              <option key={c} value={c} className="bg-[#111]">{c}</option>
+            ))}
+          </select>
+
           {(selectedRepFilter !== "all" || statusFilter !== "all" || cityFilter || fileFilter || searchQuery) && (
-            <button 
+            <button
               onClick={() => {
                 setSelectedRepFilter("all");
                 setStatusFilter("all");
@@ -421,16 +530,56 @@ export function AdminCrm({
                 setFileFilter("");
                 setSearchQuery("");
               }}
-              className="text-[10px] text-white/50 hover:text-white underline"
+              className="text-[10px] text-white/50 hover:text-white underline cursor-pointer"
             >
               Reset Filters
             </button>
           )}
         </div>
 
-        <span className="text-xs text-white/40">
-          Showing <strong className="text-white">{filteredLeads.length}</strong> of {localLeads.length} leads
-        </span>
+        {/* Bulk Action Controls */}
+        <div className="flex items-center gap-2">
+          {fileFilter && (
+            <button
+              onClick={handleDeleteFileLeads}
+              className="text-[11px] text-red-400 hover:text-red-300 border border-red-500/20 px-2.5 py-1.5 rounded hover:bg-red-500/10 transition-colors"
+            >
+              Delete File Leads
+            </button>
+          )}
+
+          {salesReps.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              <select
+                value={bulkAssignRep}
+                onChange={(e) => setBulkAssignRep(e.target.value)}
+                className="bg-white/5 border border-white/10 rounded px-2.5 py-1.5 text-xs text-white outline-none"
+              >
+                <option value="" className="bg-[#111]">-- Bulk Assign Rep --</option>
+                {salesReps.map(r => (
+                  <option key={r.id} value={r.id} className="bg-[#111]">{r.full_name}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleBulkAssign}
+                disabled={!bulkAssignRep}
+                className="px-3 py-1.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold uppercase tracking-wider hover:bg-blue-500/30 disabled:opacity-40 transition-colors cursor-pointer"
+              >
+                Assign
+              </button>
+              <button
+                onClick={handleBulkUnassign}
+                className="px-3 py-1.5 rounded bg-white/5 text-white/60 border border-white/10 text-xs font-bold uppercase tracking-wider hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                Unassign
+              </button>
+            </div>
+          )}
+
+          <span className="text-xs text-white/40 ml-2 font-mono">
+            Showing <strong className="text-white">{filteredLeads.length}</strong> of {localLeads.length}
+          </span>
+        </div>
       </div>
 
       {/* DETAILED LEADS & CALL OUTCOMES TABLE */}
@@ -448,7 +597,7 @@ export function AdminCrm({
             </thead>
             <tbody className="divide-y divide-white/5 text-white/80">
               {filteredLeads.slice(0, 100).map((l) => {
-                const assignedRep = salesReps.find(r => r.id === l.assigned_to);
+                const assignedRep = salesReps.find(r => isLeadAssignedToRep(l.assigned_to, r));
                 return (
                   <tr key={l.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="p-3.5 pl-5">
@@ -456,12 +605,13 @@ export function AdminCrm({
                       <div className="flex items-center gap-2 mt-0.5 text-[10px] text-white/40">
                         {l.phone && <span className="font-mono text-white/60">{l.phone}</span>}
                         {l.city && <span>· {l.city}</span>}
+                        {l.source_file && <span className="text-white/30 truncate max-w-[140px]">· {l.source_file}</span>}
                       </div>
                     </td>
 
                     <td className="p-3.5">
-                      <select 
-                        value={l.assigned_to || ""}
+                      <select
+                        value={assignedRep ? assignedRep.id : (l.assigned_to || "")}
                         onChange={(e) => handleReassignLead(l.id, e.target.value)}
                         className="bg-white/5 border border-white/10 rounded px-2.5 py-1 text-xs text-white outline-none cursor-pointer"
                       >
@@ -473,23 +623,22 @@ export function AdminCrm({
                     </td>
 
                     <td className="p-3.5">
-                      <select 
+                      <select
                         value={l.status || "New"}
                         disabled={statusUpdatingId === l.id}
                         onChange={(e) => handleUpdateLeadStatus(l.id, e.target.value)}
-                        className={`border rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors ${
-                          l.status === 'Converted' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
+                        className={`border rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors ${l.status === 'Converted' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
                           l.status === 'Follow-up' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300' :
-                          l.status === 'Not Answered' ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' :
-                          l.status === 'Not Converted' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
-                          'bg-white/5 border-white/10 text-white/60'
-                        }`}
+                            l.status === 'Not Answered' ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' :
+                              l.status === 'Not Converted' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                                'bg-white/5 border-white/10 text-white/60'
+                          }`}
                         style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
                       >
                         <option value="New" className="bg-[#111] text-white">New / Untouched</option>
                         <option value="Follow-up" className="bg-[#111] text-cyan-300">Follow-up</option>
                         <option value="Not Answered" className="bg-[#111] text-amber-300">Not Answered (RNR)</option>
-                        <option value="Converted" className="bg-[#111] text-emerald-400">Converted (Delivery)</option>
+                        <option value="Converted" className="bg-[#111] text-emerald-400">Converted (Won)</option>
                         <option value="Not Converted" className="bg-[#111] text-red-400">Not Converted</option>
                       </select>
                     </td>
@@ -503,12 +652,12 @@ export function AdminCrm({
                     </td>
 
                     <td className="p-3.5 pr-5 text-right">
-                      <button 
+                      <button
                         onClick={() => {
                           setActiveLeadModal(l);
                           setQuickNote(l.notes || "");
                         }}
-                        className="px-2.5 py-1 rounded border border-white/10 hover:border-white/30 text-[10px] uppercase font-bold text-white/70 hover:text-white transition-colors"
+                        className="px-2.5 py-1 rounded border border-white/10 hover:border-white/30 text-[10px] uppercase font-bold text-white/70 hover:text-white transition-colors cursor-pointer"
                       >
                         Inspect
                       </button>
@@ -518,8 +667,10 @@ export function AdminCrm({
               })}
               {filteredLeads.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-white/30 text-xs">
-                    No leads match the selected filter criteria.
+                  <td colSpan={5} className="p-12 text-center text-white/30 text-xs">
+                    {localLeads.length === 0
+                      ? "No CRM leads in database. Upload a CSV file using the 'Upload CSV' button above to populate the calling pipeline."
+                      : "No leads match the selected filter criteria."}
                   </td>
                 </tr>
               )}
@@ -560,7 +711,7 @@ export function AdminCrm({
 
             <div className="space-y-2 text-xs">
               <label className="block text-white/50 text-[10px] uppercase font-bold">Log Call Outcome & Remarks</label>
-              <textarea 
+              <textarea
                 rows={3}
                 placeholder="Log customer response, site visit booking, or reason for not answering..."
                 value={quickNote}
@@ -591,12 +742,12 @@ export function AdminCrm({
                 </button>
               </div>
 
-              <button 
+              <button
                 onClick={() => {
                   handleSaveNote(activeLeadModal.id);
                   setActiveLeadModal(null);
                 }}
-                className="px-4 py-2 bg-white text-black text-xs font-bold uppercase rounded hover:bg-white/90"
+                className="px-4 py-2 bg-white text-black text-xs font-bold uppercase rounded hover:bg-white/90 cursor-pointer"
               >
                 Save & Close
               </button>

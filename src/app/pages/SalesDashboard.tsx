@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { LogOut, Phone, Users, CheckCircle, Check, Copy, Clock, X, MapPin, Globe, Star, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { supabase, Profile } from "@/lib/supabase";
+import { supabase, Profile, isLeadAssignedToRep, isAdminEmail } from "@/lib/supabase";
+import { INITIAL_OPERATIONAL_LEADS } from "@/lib/operationalLeads";
 import { StatCard } from "@/app/components/ui/StatCard";
 import { LayoutDashboard, Kanban, ListTodo, FileText, Settings, HelpCircle, ChevronDown, ChevronRight, Search, Plus, Download } from "lucide-react";
 import { OverviewTab } from "./sales/OverviewTab";
@@ -100,36 +101,82 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
       
       // Allow access if sales
       if (!data || data.role !== "sales") {
+        if (isAdminEmail(user.email)) {
+          onNavigate("admin-dashboard");
+          return;
+        }
         onNavigate("home");
         return;
       }
       
       setProfile(data as Profile);
       
-      // Fetch CRM leads assigned to this sales rep
-      let allLeads: any[] = [];
-      let page = 0;
-      const pageSize = 1000;
-      while (true) {
-        const { data: leadsData } = await supabase.from("crm_leads")
-          .select("*")
-          .eq("assigned_to", user.id)
-          .order("created_at", { ascending: false })
-          .range(page * pageSize, (page + 1) * pageSize - 1);
-        
-        if (leadsData && leadsData.length > 0) {
-          allLeads = [...allLeads, ...leadsData];
-          if (leadsData.length < pageSize) break;
-        } else {
-          break;
-        }
-        page++;
-      }
-      setLeads(allLeads);
+      // Fetch CRM leads assigned to this sales rep.
+      // Leads may be stored with assigned_to as: UUID, email, or username prefix.
+      // We query all three variants in parallel and deduplicate by ID.
+      const repEmail = user.email || "";
+      const repUsername = repEmail ? repEmail.split("@")[0] : "";
 
-      // Fetch global leads for stats
-      const { data: globalData } = await supabase.from("crm_leads").select("status, assigned_to");
-      if (globalData) setAllGlobalLeads(globalData);
+      const fetchAllPages = async (filterKey: string, filterVal: string): Promise<any[]> => {
+        const results: any[] = [];
+        let pg = 0;
+        const pageSize = 1000;
+        while (true) {
+          const { data: chunk } = await supabase.from("crm_leads")
+            .select("*")
+            .eq(filterKey, filterVal)
+            .order("created_at", { ascending: false })
+            .range(pg * pageSize, (pg + 1) * pageSize - 1);
+          if (chunk && chunk.length > 0) {
+            results.push(...chunk);
+            if (chunk.length < pageSize) break;
+          } else break;
+          pg++;
+        }
+        return results;
+      };
+
+      // Run all three queries in parallel
+      const [byId, byEmail, byUsername] = await Promise.all([
+        fetchAllPages("assigned_to", user.id),
+        repEmail ? fetchAllPages("assigned_to", repEmail) : Promise.resolve([]),
+        repUsername ? fetchAllPages("assigned_to", repUsername) : Promise.resolve([]),
+      ]);
+
+      // Merge and deduplicate
+      const seenIds = new Set<string>();
+      let allLeads: any[] = [];
+      for (const lead of [...byId, ...byEmail, ...byUsername]) {
+        if (!seenIds.has(lead.id)) {
+          seenIds.add(lead.id);
+          allLeads.push(lead);
+        }
+      }
+      
+      if (allLeads.length === 0) {
+        // Fall back to shared operational CRM leads
+        localStorage.removeItem("beprompter_crm_leads_v5");
+        localStorage.removeItem("beprompter_crm_leads_v4");
+        localStorage.removeItem("beprompter_crm_leads_v3");
+        // Use v7 (current admin cache key)
+        const cachedStr = localStorage.getItem("beprompter_crm_leads_v7") ||
+                          localStorage.getItem("beprompter_crm_leads_v6");
+        let pool = INITIAL_OPERATIONAL_LEADS;
+        if (cachedStr) {
+          try {
+            const parsed = JSON.parse(cachedStr);
+            if (Array.isArray(parsed) && parsed.length > 0) pool = parsed;
+          } catch (e) {}
+        }
+        allLeads = pool.filter(l => isLeadAssignedToRep(l.assigned_to, { id: user.id, email: repEmail }));
+        setAllGlobalLeads(pool.map(l => ({ status: l.status, assigned_to: l.assigned_to })));
+      } else {
+        // Fetch global leads for stats
+        const { data: globalData } = await supabase.from("crm_leads").select("status, assigned_to");
+        if (globalData) setAllGlobalLeads(globalData);
+      }
+
+      setLeads(allLeads);
 
       // Fetch developers
       const { data: devsData } = await supabase.from("profiles").select("*").eq("role", "developer");
@@ -195,17 +242,38 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
       updateData.developer_id = minId;
     }
 
-    const { error } = await supabase.from("crm_leads").update(updateData).eq("id", leadId);
-    if (!error) {
-      setLeads(leads.map(l => l.id === leadId ? { ...l, ...updateData } : l));
-    }
+    setLeads(prev => {
+      const updated = prev.map(l => l.id === leadId ? { ...l, ...updateData } : l);
+      syncLeadUpdateToCache(leadId, updateData);
+      return updated;
+    });
+
+    try {
+      await supabase.from("crm_leads").update(updateData).eq("id", leadId);
+    } catch (e) {}
+  };
+
+  const syncLeadUpdateToCache = (leadId: string, partial: any) => {
+    try {
+      const cachedStr = localStorage.getItem("beprompter_crm_leads_v4");
+      if (cachedStr) {
+        const pool = JSON.parse(cachedStr);
+        const updated = pool.map((l: any) => l.id === leadId ? { ...l, ...partial } : l);
+        localStorage.setItem("beprompter_crm_leads_v4", JSON.stringify(updated));
+      }
+    } catch (e) {}
   };
 
   const updateDeveloper = async (leadId: string, devId: string) => {
-    const { error } = await supabase.from("crm_leads").update({ developer_id: devId }).eq("id", leadId);
-    if (!error) {
-      setLeads(leads.map(l => l.id === leadId ? { ...l, developer_id: devId } : l));
-    }
+    setLeads(prev => {
+      const updated = prev.map(l => l.id === leadId ? { ...l, developer_id: devId } : l);
+      syncLeadUpdateToCache(leadId, { developer_id: devId });
+      return updated;
+    });
+
+    try {
+      await supabase.from("crm_leads").update({ developer_id: devId }).eq("id", leadId);
+    } catch (e) {}
   };
 
   const signOut = async () => {
@@ -393,7 +461,10 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                 <div className="flex flex-wrap items-center gap-3">
                   <select
                     value={fileFilter}
-                    onChange={(e) => setFileFilter(e.target.value)}
+                    onChange={(e) => {
+                      setFileFilter(e.target.value);
+                      setCityFilter("");
+                    }}
                     className="bg-black/50 border border-white/10 text-white text-xs px-3 py-1.5 outline-none rounded transition-colors"
                     style={{ fontFamily: "'Inter', sans-serif" }}
                   >
@@ -411,8 +482,8 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                     <option value="">All Cities</option>
                     {Array.from(new Set(leads.filter(l => !fileFilter || l.source_file === fileFilter).map(l => l.city).filter(c => {
                       if (!c) return false;
+                      if (c === "·" || c === "-") return false;
                       if (c.includes('@')) return false;
-                      if (/\d{4,}/.test(c)) return false;
                       return true;
                     }))).sort().map(c => (
                       <option key={c} value={c}>{c}</option>
@@ -631,6 +702,7 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                         defaultValue={l.notes || ""}
                         onBlur={async (e) => {
                           setSavingNoteId(l.id + 'notes');
+                          syncLeadUpdateToCache(l.id, { notes: e.target.value });
                           await supabase.from("crm_leads").update({ notes: e.target.value }).eq("id", l.id);
                           setLeads(leads.map(lead => lead.id === l.id ? { ...lead, notes: e.target.value } : lead));
                           setTimeout(() => setSavingNoteId(null), 2000);
@@ -651,6 +723,7 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                         defaultValue={l.services_wanted || ""}
                         onBlur={async (e) => {
                           setSavingNoteId(l.id + 'services');
+                          syncLeadUpdateToCache(l.id, { services_wanted: e.target.value });
                           await supabase.from("crm_leads").update({ services_wanted: e.target.value }).eq("id", l.id);
                           setLeads(leads.map(lead => lead.id === l.id ? { ...lead, services_wanted: e.target.value } : lead));
                           setTimeout(() => setSavingNoteId(null), 2000);
@@ -671,6 +744,7 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                         defaultValue={l.budget_constraints || ""}
                         onBlur={async (e) => {
                           setSavingNoteId(l.id + 'budget');
+                          syncLeadUpdateToCache(l.id, { budget_constraints: e.target.value });
                           await supabase.from("crm_leads").update({ budget_constraints: e.target.value }).eq("id", l.id);
                           setLeads(leads.map(lead => lead.id === l.id ? { ...lead, budget_constraints: e.target.value } : lead));
                           setTimeout(() => setSavingNoteId(null), 2000);
@@ -691,6 +765,7 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
                         defaultValue={l.objections || ""}
                         onBlur={async (e) => {
                           setSavingNoteId(l.id + 'objections');
+                          syncLeadUpdateToCache(l.id, { objections: e.target.value });
                           await supabase.from("crm_leads").update({ objections: e.target.value }).eq("id", l.id);
                           setLeads(leads.map(lead => lead.id === l.id ? { ...lead, objections: e.target.value } : lead));
                           setTimeout(() => setSavingNoteId(null), 2000);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Code, FileText, CheckCircle, Clock, X, Terminal, GitMerge, Archive } from "lucide-react";
-import { supabase, Profile } from "@/lib/supabase";
+import { supabase, Profile, isAdminEmail } from "@/lib/supabase";
 import { StatCard } from "@/app/components/ui/StatCard";
 import { DashboardLayout } from "@/app/components/DashboardLayout";
 
@@ -19,6 +19,10 @@ export function DeveloperDashboard({ onNavigate }: { onNavigate: (p: string) => 
       const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
       
       if (!data || data.role !== "developer") {
+        if (isAdminEmail(user.email)) {
+          onNavigate("admin-dashboard");
+          return;
+        }
         onNavigate("home");
         return;
       }

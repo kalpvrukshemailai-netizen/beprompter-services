@@ -30,13 +30,14 @@ import { GrievancePage } from "@/app/pages/GrievancePage";
 import { IntellectualPropertyPage } from "@/app/pages/IntellectualPropertyPage";
 import { LetsTalkPage } from "@/app/pages/LetsTalkPage";
 import { SitemapPage } from "@/app/pages/SitemapPage";
-import { supabase } from "@/lib/supabase";
+import { PricingPage } from "@/app/pages/PricingPage";
+import { supabase, resolveUserRole, isAdminEmail, UserRole } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import { useSEO } from "@/lib/seo";
 import { StructuredData } from "@/app/components/StructuredData";
 
 type Page =
-  | "home" | "about" | "services"
+  | "home" | "about" | "services" | "pricing"
   | "contact" | "real-estate"
   | "industries" | "insights" | "case-studies" | "agency-partners" | "trust" | "privacy-policy" | "lets-talk"
   | "terms" | "refund-policy" | "cookie-policy" | "acceptable-use" | "ai-disclaimer" | "security" | "grievance" | "intellectual-property"
@@ -49,13 +50,14 @@ const pageVariants = {
   exit: { opacity: 0, y: -16, transition: { duration: 0.3 } },
 };
 
-const DASHBOARD_PAGES: Page[] = ["auth", "client-dashboard", "developer-dashboard", "sales-dashboard", "admin-dashboard"];
+const DASHBOARD_PAGES: Page[] = ["client-dashboard", "developer-dashboard", "sales-dashboard", "admin-dashboard"];
 
 export default function App() {
   const location = useLocation();
   const routeNavigate = useNavigate();
   const [page, setPage] = useState<Page>("home");
   const [serviceIndex, setServiceIndex] = useState(0);
+  const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null);
   const [scrollToDetail, setScrollToDetail] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [profileRole, setProfileRole] = useState<string | null>(null);
@@ -70,51 +72,67 @@ export default function App() {
   // ── SEO: update meta tags + JSON-LD on every page navigation ──
   useSEO(page);
 
+  const syncUserAndRole = async (u: User | null) => {
+    setUser(u);
+    if (!u) {
+      setProfileRole(null);
+      return;
+    }
+
+    let pRole: UserRole = resolveUserRole(u.email, u.user_metadata?.role);
+
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .or(`id.eq.${u.id},email.eq.${u.email}`)
+        .maybeSingle();
+
+      if (profile?.role) {
+        pRole = resolveUserRole(u.email, profile.role, u.user_metadata?.role);
+      }
+
+      // Enforce admin profile in database for authorized admin accounts (e.g. shauryap0000@gmail.com)
+      if (pRole === "admin" || isAdminEmail(u.email)) {
+        pRole = "admin";
+        await supabase.from("profiles").upsert({
+          id: u.id,
+          email: u.email!,
+          role: "admin",
+          full_name: profile?.full_name || u.user_metadata?.full_name || "Shaurya Pratap",
+          company_name: profile?.company_name || "BePrompter Admin",
+          phone: profile?.phone || u.user_metadata?.phone || null,
+          created_at: profile?.created_at || new Date().toISOString()
+        });
+      }
+    } catch (err) {
+      console.warn("syncUserAndRole note:", err);
+    }
+
+    setProfileRole(pRole);
+
+    const currentPath = location.pathname.replace(/\/+$/, "") || "/";
+    // If an admin is on auth OR on client-dashboard, route to admin-dashboard
+    if (pRole === "admin" || isAdminEmail(u.email)) {
+      if (currentPath === "/auth" || currentPath === "/client-dashboard") {
+        routeNavigate("/admin-dashboard");
+      }
+    } else if (currentPath === "/auth") {
+      if (pRole === "developer") routeNavigate("/developer-dashboard");
+      else if (pRole === "sales") routeNavigate("/sales-dashboard");
+      else routeNavigate("/client-dashboard");
+    }
+  };
+
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      
-      let pRole = u?.user_metadata?.role;
-      if (u) {
-        const { data: profile } = await supabase.from("profiles").select("role").eq("id", u.id).single();
-        if (profile?.role) pRole = profile.role;
-        setProfileRole(pRole);
-      }
-
-      // If already logged in on mount and sitting on auth page, redirect to dashboard
-      if (u) {
-        if (location.pathname === "/auth") {
-          if (pRole === "admin") routeNavigate("/admin-dashboard");
-          else if (pRole === "developer") routeNavigate("/developer-dashboard");
-          else if (pRole === "sales") routeNavigate("/sales-dashboard");
-          else routeNavigate("/client-dashboard");
-        }
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      syncUserAndRole(session?.user ?? null);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      
-      let pRole = u?.user_metadata?.role;
-      if (u) {
-        const { data: profile } = await supabase.from("profiles").select("role").eq("id", u.id).single();
-        if (profile?.role) pRole = profile.role;
-        setProfileRole(pRole);
-      }
-
-      // When auth state changes to logged-in while on auth page, redirect immediately
-      if (u) {
-        if (location.pathname === "/auth") {
-          if (pRole === "admin") routeNavigate("/admin-dashboard");
-          else if (pRole === "developer") routeNavigate("/developer-dashboard");
-          else if (pRole === "sales") routeNavigate("/sales-dashboard");
-          else routeNavigate("/client-dashboard");
-        }
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncUserAndRole(session?.user ?? null);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [location.pathname]);
 
   const navigate = (p: string) => {
     if (p.startsWith("services:")) {
@@ -122,6 +140,16 @@ export default function App() {
       setServiceIndex(isNaN(idx) ? 0 : idx);
       setScrollToDetail(true);
       routeNavigate("/services");
+    } else if (p.startsWith("industries:")) {
+      const ind = p.split(":")[1];
+      setSelectedIndustry(ind);
+      routeNavigate("/industries");
+    } else if (p === "industries") {
+      setSelectedIndustry(null);
+      routeNavigate("/industries");
+    } else if (p === "pricing") {
+      routeNavigate("/pricing");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (p.startsWith("home:")) {
       routeNavigate("/");
       setTimeout(() => {
@@ -140,9 +168,10 @@ export default function App() {
   const isDashboard = DASHBOARD_PAGES.includes(page);
 
   const getDashboardPage = (): Page => {
-    if (profileRole === "admin") return "admin-dashboard";
-    if (profileRole === "developer") return "developer-dashboard";
-    if (profileRole === "sales") return "sales-dashboard";
+    const role = resolveUserRole(user?.email, profileRole, user?.user_metadata?.role);
+    if (role === "admin" || isAdminEmail(user?.email)) return "admin-dashboard";
+    if (role === "developer") return "developer-dashboard";
+    if (role === "sales") return "sales-dashboard";
     return "client-dashboard";
   };
 
@@ -160,8 +189,9 @@ export default function App() {
       case "real-estate":      return <RealEstateIndustryPage onNavigate={navigate} />;
       case "about":            return <AboutPage onNavigate={navigate} />;
       case "services":         return <ServicesPage onNavigate={navigate} initialServiceIndex={serviceIndex} scrollToDetail={scrollToDetail} />;
+      case "pricing":          return <PricingPage onNavigate={navigate} />;
       case "contact":          return <ContactPage />;
-      case "industries":       return <IndustriesPage onNavigate={navigate} />;
+      case "industries":       return <IndustriesPage onNavigate={navigate} initialIndustry={selectedIndustry || undefined} />;
       case "insights":         return <InsightsPage onNavigate={navigate} />;
       case "case-studies":     return <CaseStudiesPage onNavigate={navigate} />;
       case "agency-partners":  return <AgencyPartnersPage onNavigate={navigate} />;
@@ -178,7 +208,11 @@ export default function App() {
       case "lets-talk":        return <LetsTalkPage />;
       case "sitemap":          return <SitemapPage onNavigate={navigate} />;
       case "auth":             return <AuthPage onNavigate={navigate} />;
-      case "client-dashboard": return <ClientDashboard onNavigate={navigate} />;
+      case "client-dashboard": {
+        const role = resolveUserRole(user?.email, profileRole, user?.user_metadata?.role);
+        if (role === "admin" || isAdminEmail(user?.email)) return <AdminDashboard onNavigate={navigate} />;
+        return <ClientDashboard onNavigate={navigate} />;
+      }
       case "developer-dashboard":return <DeveloperDashboard onNavigate={navigate} />;
       case "sales-dashboard":  return <SalesDashboard onNavigate={navigate} />;
       case "admin-dashboard":  return <AdminDashboard onNavigate={navigate} />;
@@ -191,7 +225,7 @@ export default function App() {
       {/* ── JSON-LD Structured Data (injected into <head> via dangerouslySetInnerHTML) ── */}
       <StructuredData page={page} />
 
-      <Nav currentPage={page} onNavigate={navigate} user={user} userRole={profileRole} />
+      {!isDashboard && <Nav currentPage={page} onNavigate={navigate} user={user} userRole={profileRole} />}
 
       <AnimatePresence mode="wait">
         <motion.main

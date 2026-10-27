@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import { ChevronDown, ChevronLeft, User, Bot, Mic, Workflow, MessageSquare, Globe, Home, Heart, UtensilsCrossed, Factory, GraduationCap, Landmark, Scale, ShoppingBag, Megaphone, TrendingUp, Headphones, BookOpen, FileText, Mail, Users, Handshake, Database, Monitor } from "lucide-react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { resolveUserRole, isAdminEmail } from "@/lib/supabase";
 
 import beLogo from "@/imports/BE-logo.jpeg";
 
@@ -50,19 +51,19 @@ const NAV_SECTIONS: NavSection[] = [
           heading: "By Industry",
           items: [
             { label: "Real Estate",    page: "real-estate",  icon: Home },
-            { label: "Healthcare",     page: "industries",   icon: Heart },
-            { label: "Restaurants",    page: "industries",   icon: UtensilsCrossed },
-            { label: "Manufacturing",  page: "industries",   icon: Factory },
-            { label: "Education",      page: "industries",   icon: GraduationCap },
-            { label: "Legal",          page: "industries",   icon: Scale },
+            { label: "Healthcare",     page: "industries:healthcare",   icon: Heart },
+            { label: "Restaurants",    page: "industries:restaurants",   icon: UtensilsCrossed },
+            { label: "Manufacturing",  page: "industries:manufacturing",   icon: Factory },
+            { label: "Education",      page: "industries:education",   icon: GraduationCap },
+            { label: "Legal",          page: "industries:legal",   icon: Scale },
           ],
         },
         {
           heading: "By Function",
           items: [
-            { label: "Sales & Marketing",  page: "industries", icon: TrendingUp },
-            { label: "Operations",         page: "industries", icon: Workflow },
-            { label: "Customer Support",   page: "industries", icon: Headphones },
+            { label: "Sales & Marketing",  page: "industries:agencies", icon: TrendingUp },
+            { label: "Operations",         page: "industries:manufacturing", icon: Workflow },
+            { label: "Customer Support",   page: "services:0", icon: Headphones },
           ],
         },
       ],
@@ -77,7 +78,7 @@ const NAV_SECTIONS: NavSection[] = [
   },
   {
     label: "Pricing",
-    page: "home:pricing",
+    page: "pricing",
   },
   {
     label: "Resources",
@@ -461,10 +462,13 @@ export function Nav({ currentPage, onNavigate, user, userRole }: NavProps) {
   /* Helper: check if a section or its children is active */
   const isSectionActive = (section: NavSection): boolean => {
     if (currentPage === section.page) return true;
-    if (section.sub?.some((s) => currentPage === s.page)) return true;
+    if (currentPage === "pricing" && section.page === "pricing") return true;
+    if (currentPage.startsWith("services") && section.page === "services") return true;
+    if (currentPage.startsWith("industries") && section.page === "industries") return true;
+    if (section.sub?.some((s) => currentPage === s.page || (currentPage.startsWith("services") && s.page.startsWith("services")))) return true;
     if (section.mega) {
       for (const col of section.mega.columns) {
-        if (col.items.some((it) => currentPage === it.page)) return true;
+        if (col.items.some((it) => currentPage === it.page || (currentPage.startsWith("industries") && it.page.startsWith("industries")))) return true;
       }
     }
     return false;
@@ -554,8 +558,8 @@ export function Nav({ currentPage, onNavigate, user, userRole }: NavProps) {
             {user ? (
               <motion.button
                 onClick={() => {
-                  const role = userRole || user.user_metadata?.role;
-                  if (role === "admin") go("admin-dashboard");
+                  const role = resolveUserRole(user.email, userRole, user.user_metadata?.role);
+                  if (role === "admin" || isAdminEmail(user.email)) go("admin-dashboard");
                   else if (role === "developer") go("developer-dashboard");
                   else if (role === "sales") go("sales-dashboard");
                   else go("client-dashboard");
@@ -714,8 +718,8 @@ export function Nav({ currentPage, onNavigate, user, userRole }: NavProps) {
                 whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>{"Let's Talk"}</motion.button>
               <motion.button onClick={() => {
                 if (user) {
-                  const role = userRole || user.user_metadata?.role;
-                  if (role === "admin") go("admin-dashboard");
+                  const role = resolveUserRole(user.email, userRole, user.user_metadata?.role);
+                  if (role === "admin" || isAdminEmail(user.email)) go("admin-dashboard");
                   else if (role === "developer") go("developer-dashboard");
                   else if (role === "sales") go("sales-dashboard");
                   else go("client-dashboard");

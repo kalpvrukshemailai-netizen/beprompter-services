@@ -69,9 +69,27 @@ const INDUSTRIES = [
   },
 ];
 
-export function IndustriesPage({ onNavigate }: { onNavigate: (p: string) => void }) {
-  const [activeId, setActiveId] = useState<string | null>(null);
+export function IndustriesPage({ 
+  onNavigate, 
+  initialIndustry 
+}: { 
+  onNavigate: (p: string) => void;
+  initialIndustry?: string;
+}) {
+  const [activeId, setActiveId] = useState<string | null>(initialIndustry || null);
   const active = INDUSTRIES.find((i) => i.id === activeId);
+
+  useEffect(() => {
+    if (initialIndustry) {
+      setActiveId(initialIndustry);
+      setTimeout(() => {
+        const el = document.getElementById(initialIndustry);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 100);
+    }
+  }, [initialIndustry]);
 
   return (
     <div style={{ backgroundColor: "#0a0a0a" }}>
@@ -102,6 +120,7 @@ export function IndustriesPage({ onNavigate }: { onNavigate: (p: string) => void
               return (
                 <motion.div
                   key={ind.id}
+                  id={ind.id}
                   className="relative overflow-hidden rounded-xl border cursor-pointer group p-7 flex flex-col gap-5 transition-colors"
                   style={{ backgroundColor: isActive ? "#111" : "#0d0d0d", borderColor: isActive ? ind.accent + "55" : "rgba(255,255,255,0.07)" }}
                   initial={{ opacity: 0, y: 40 }}

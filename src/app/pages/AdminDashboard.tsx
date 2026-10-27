@@ -5,7 +5,8 @@ import {
   Activity, CreditCard, ShieldAlert, Settings,
   Search, Bell
 } from "lucide-react";
-import { supabase, Profile, UserRole } from "@/lib/supabase";
+import { supabase, Profile, UserRole, deduplicateProfiles, resolveUserRole, isAdminEmail } from "@/lib/supabase";
+import { INITIAL_OPERATIONAL_LEADS } from "@/lib/operationalLeads";
 import Papa from "papaparse";
 import { ErrorBoundary } from "@/app/components/ErrorBoundary";
 
@@ -32,7 +33,16 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
   const [projects, setProjects] = useState<any[]>([]);
   const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
-  const [crmLeads, setCrmLeads] = useState<any[]>([]);
+  const [crmLeads, setCrmLeads] = useState<any[]>(() => {
+    try {
+      const cached = localStorage.getItem("beprompter_crm_leads_v4");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return INITIAL_OPERATIONAL_LEADS;
+  });
   
   // UI states
   const [loading, setLoading] = useState(true);
@@ -69,19 +79,19 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
         let currentProfile: Profile | null = null;
         
         if (user) {
-          const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+          const { data: profileData } = await supabase.from("profiles").select("*").or(`id.eq.${user.id},email.eq.${user.email}`).maybeSingle();
           if (profileData) {
             currentProfile = profileData as Profile;
-            // Ensure admin role for Shaurya or on localhost
-            if (currentProfile.role !== "admin" && (window.location.hostname === "localhost" || user.email?.includes("shaurya") || user.email?.includes("admin"))) {
+            // Ensure admin role for Shaurya or authorized admin emails
+            if (currentProfile.role !== "admin" && (isAdminEmail(user.email) || window.location.hostname === "localhost" || user.email?.includes("shaurya") || user.email?.includes("admin"))) {
               currentProfile = { ...currentProfile, role: "admin" };
-              await supabase.from("profiles").update({ role: "admin" }).eq("id", user.id);
+              await supabase.from("profiles").update({ role: "admin" }).eq("id", profileData.id);
             }
           } else {
             // Auto-create admin profile for current user
             const newAdminProfile: Profile = {
               id: user.id,
-              email: user.email || "shauryapratap80033@gmail.com",
+              email: user.email || "shauryap0000@gmail.com",
               role: "admin",
               full_name: user.user_metadata?.full_name || "Shaurya Pratap",
               company_name: "BePrompter",
@@ -95,7 +105,7 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
           // Demo / Dev admin session so admin panel can be previewed seamlessly
           currentProfile = {
             id: "admin-preview",
-            email: "shauryapratap80033@gmail.com",
+            email: "shauryap0000@gmail.com",
             role: "admin",
             full_name: "Shaurya Pratap",
             company_name: "BePrompter Admin",
@@ -119,42 +129,266 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
     return () => { isMounted = false; };
   }, []);
 
+  const USERS_STORAGE_KEY = "beprompter_admin_profiles_v4";
+  const DELETED_USERS_KEY = "beprompter_deleted_user_emails_v2";
+  const PROJECTS_STORAGE_KEY = "beprompter_admin_projects_v2";
+  const CRM_LEADS_STORAGE_KEY = "beprompter_crm_leads_v7";
+
   const fetchUsers = async () => {
-    const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-    if (data) setUsers(data as Profile[]);
+    try {
+      const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      
+      const cachedStr = localStorage.getItem(USERS_STORAGE_KEY);
+      const cachedList: Profile[] = cachedStr ? JSON.parse(cachedStr) : [];
+
+      const deletedStr = localStorage.getItem(DELETED_USERS_KEY);
+      const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
+      const deletedSet = new Set(deletedList.map(s => s.toLowerCase()));
+
+      // Clean, authoritative baseline of the 7 core platform accounts
+      const canonicalDefaults: Profile[] = [
+        { 
+          id: "usr-shaurya-admin", 
+          email: "shauryap0000@gmail.com", 
+          full_name: "Shaurya Pratap", 
+          role: "admin", 
+          company_name: "BePrompter Executive", 
+          phone: "+91 99999 88888", 
+          google_sheet_url: null, 
+          created_at: "2026-03-01T07:00:00Z" 
+        },
+        { 
+          id: "usr-namita-sales", 
+          email: "namitakumari4000@gmail.com", 
+          full_name: "Namita Kumari", 
+          role: "sales", 
+          company_name: "BePrompter Operations & Sales", 
+          phone: "+91 98765 43210", 
+          google_sheet_url: null, 
+          created_at: "2026-03-01T07:00:00Z" 
+        },
+        { 
+          id: "usr-kavya-sales", 
+          email: "kavyashah8605@gmail.com", 
+          full_name: "Kavya Shah", 
+          role: "sales", 
+          company_name: "BePrompter Sales Team", 
+          phone: "+91 98200 12345", 
+          google_sheet_url: null, 
+          created_at: "2026-03-10T08:00:00Z" 
+        },
+        { 
+          id: "usr-ranjeet-sales", 
+          email: "ranjeetkumarprajapat2005@gmail.com", 
+          full_name: "Ranjeet Kumar", 
+          role: "sales", 
+          company_name: "BePrompter Sales Team", 
+          phone: "+91 97110 88231", 
+          google_sheet_url: null, 
+          created_at: "2026-03-12T10:15:00Z" 
+        },
+        { 
+          id: "usr-garv-sales", 
+          email: "ggarv3532@gmail.com", 
+          full_name: "Garv", 
+          role: "sales", 
+          company_name: "BePrompter Sales Team", 
+          phone: "+91 98102 77312", 
+          google_sheet_url: null, 
+          created_at: "2026-03-12T11:45:00Z" 
+        },
+        { 
+          id: "usr-shaurya-client", 
+          email: "shauryapratap80033@gmail.com", 
+          full_name: "Shaurya", 
+          role: "client", 
+          company_name: "Shaurya Real Estate", 
+          phone: "+91 99999 77777", 
+          google_sheet_url: "https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit", 
+          created_at: "2026-03-05T12:00:00Z" 
+        },
+        { 
+          id: "usr-kavya-client", 
+          email: "kalpvruksh.email.ai@gmail.com", 
+          full_name: "Kavya Shah", 
+          role: "client", 
+          company_name: "Kalpvruksh AI", 
+          phone: "+91 98200 54321", 
+          google_sheet_url: "https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit", 
+          created_at: "2026-03-11T09:30:00Z" 
+        },
+      ];
+
+      // Build authoritative map: defaults first, then DB, then cachedList (latest admin actions override defaults)
+      const userMap = new Map<string, Profile>();
+      canonicalDefaults.forEach(u => {
+        if (u.email) userMap.set(u.email.toLowerCase(), u);
+      });
+      ((data as Profile[]) || []).forEach(u => {
+        if (u.email) {
+          const norm = u.email.toLowerCase();
+          const existing = userMap.get(norm);
+          userMap.set(norm, { ...existing, ...u });
+        }
+      });
+      cachedList.forEach(u => {
+        if (u.email) {
+          const norm = u.email.toLowerCase();
+          const existing = userMap.get(norm);
+          userMap.set(norm, { ...existing, ...u });
+        }
+      });
+
+      const combined = Array.from(userMap.values())
+        .filter(u => u.email && !deletedSet.has(u.email.toLowerCase()) && !deletedSet.has((u.id || "").toLowerCase()));
+      
+      // Deduplicate strictly by normalized email
+      const cleanList = deduplicateProfiles(combined);
+
+      setUsers(cleanList);
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(cleanList));
+      localStorage.removeItem("beprompter_admin_profiles_v3");
+      localStorage.removeItem("beprompter_admin_profiles_v2");
+    } catch (e) {
+      console.warn("fetchUsers error:", e);
+    }
   };
 
-  const handleRoleChange = async (userId: string, newRole: UserRole) => {
+  const handleRoleChange = async (userId: string, newRole: UserRole, userEmail?: string) => {
     setUpdatingId(userId);
-    const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
-    if (!error) await fetchUsers();
+    setUsers(prev => {
+      const updated = prev.map(u => 
+        (u.id === userId || (u.email && (u.email.toLowerCase() === userId.toLowerCase() || (userEmail && u.email.toLowerCase() === userEmail.toLowerCase())))) 
+          ? { ...u, role: newRole } 
+          : u
+      );
+      const clean = deduplicateProfiles(updated);
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(clean));
+      return clean;
+    });
+    try {
+      if (!userId.startsWith("usr-")) {
+        await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
+      }
+      if (userEmail) {
+        await supabase.from("profiles").update({ role: newRole }).eq("email", userEmail.toLowerCase());
+      }
+    } catch (e) {
+      console.warn("Supabase role update note:", e);
+    }
     setUpdatingId(null);
   };
 
-  const handleRemoveUser = async (userId: string) => {
-    if (!window.confirm("Are you sure you want to remove this member?")) return;
+  const handleRemoveUser = async (userId: string, userEmail?: string) => {
     setUpdatingId(userId);
-    const { error } = await supabase.from("profiles").delete().eq("id", userId);
-    if (!error) await fetchUsers();
+
+    // Save to deleted list so it's never resurrected
+    try {
+      const deletedStr = localStorage.getItem(DELETED_USERS_KEY);
+      const deletedList: string[] = deletedStr ? JSON.parse(deletedStr) : [];
+      if (userEmail && !deletedList.includes(userEmail.toLowerCase())) {
+        deletedList.push(userEmail.toLowerCase());
+      }
+      if (userId && !deletedList.includes(userId.toLowerCase())) {
+        deletedList.push(userId.toLowerCase());
+      }
+      localStorage.setItem(DELETED_USERS_KEY, JSON.stringify(deletedList));
+    } catch (e) {}
+
+    setUsers(prev => {
+      const updated = prev.filter(u => {
+        if (userId && (u.id === userId || u.email.toLowerCase() === userId.toLowerCase())) return false;
+        if (userEmail && u.email && u.email.toLowerCase() === userEmail.toLowerCase()) return false;
+        return true;
+      });
+      const clean = deduplicateProfiles(updated);
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(clean));
+      return clean;
+    });
+
+    try {
+      if (userId && !userId.startsWith("usr-")) {
+        await supabase.from("profiles").delete().eq("id", userId);
+      }
+      if (userEmail) {
+        await supabase.from("profiles").delete().eq("email", userEmail.toLowerCase());
+      }
+    } catch (e) {
+      console.warn("Supabase remove note:", e);
+    }
     setUpdatingId(null);
+  };
+
+  const handleUpdateUser = (updatedProfile: Profile) => {
+    setUsers(prev => {
+      const updated = prev.map(u => 
+        (u.id === updatedProfile.id || u.email.toLowerCase() === updatedProfile.email.toLowerCase()) 
+          ? updatedProfile 
+          : u
+      );
+      const clean = deduplicateProfiles(updated);
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(clean));
+      return clean;
+    });
+  };
+
+  const handleAddUser = (newProfile: Profile) => {
+    try {
+      const deletedStr = localStorage.getItem(DELETED_USERS_KEY);
+      if (deletedStr) {
+        const deletedList: string[] = JSON.parse(deletedStr);
+        const filtered = deletedList.filter(e => e.toLowerCase() !== newProfile.email.toLowerCase() && e.toLowerCase() !== newProfile.id.toLowerCase());
+        localStorage.setItem(DELETED_USERS_KEY, JSON.stringify(filtered));
+      }
+    } catch (e) {}
+
+    setUsers(prev => {
+      const updated = [newProfile, ...prev.filter(u => u.email.toLowerCase() !== newProfile.email.toLowerCase())];
+      const clean = deduplicateProfiles(updated);
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(clean));
+      return clean;
+    });
   };
 
   const fetchProjects = async () => {
-    const { data: pData } = await supabase.from("projects").select(`*, client:profiles!projects_client_id_fkey(full_name, email, company_name)`).order("created_at", { ascending: false });
-    const { data: mData } = await supabase.from("project_members").select("*");
-    if (pData) setProjects(pData);
-    if (mData) setProjectMembers(mData);
+    try {
+      const { data: pData } = await supabase.from("projects").select(`*, client:profiles!projects_client_id_fkey(full_name, email, company_name)`).order("created_at", { ascending: false });
+      const { data: mData } = await supabase.from("project_members").select("*");
+      
+      const cachedStr = localStorage.getItem(PROJECTS_STORAGE_KEY);
+      const cachedProjects = cachedStr ? JSON.parse(cachedStr) : [];
+      
+      if (pData && pData.length > 0) {
+        setProjects(pData);
+        localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(pData));
+      } else if (cachedProjects.length > 0) {
+        setProjects(cachedProjects);
+      }
+      if (mData) setProjectMembers(mData);
+    } catch (e) {
+      console.warn("fetchProjects error:", e);
+    }
   };
 
   const handleToggleAssignment = async (projectId: string, userId: string) => {
     setUpdatingId(`assign-${projectId}`);
     const isAssigned = projectMembers.some(m => m.project_id === projectId && m.user_id === userId);
-    if (isAssigned) {
-      await supabase.from("project_members").delete().match({ project_id: projectId, user_id: userId });
-    } else {
-      await supabase.from("project_members").insert({ project_id: projectId, user_id: userId });
+    setProjectMembers(prev => {
+      if (isAssigned) {
+        return prev.filter(m => !(m.project_id === projectId && m.user_id === userId));
+      } else {
+        return [...prev, { project_id: projectId, user_id: userId, created_at: new Date().toISOString() }];
+      }
+    });
+    try {
+      if (isAssigned) {
+        await supabase.from("project_members").delete().match({ project_id: projectId, user_id: userId });
+      } else {
+        await supabase.from("project_members").insert({ project_id: projectId, user_id: userId });
+      }
+    } catch (e) {
+      console.warn("Supabase toggle assignment note:", e);
     }
-    await fetchProjects();
     setUpdatingId(null);
   };
 
@@ -164,17 +398,95 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
   };
 
   const fetchCrmLeads = async () => {
-    let allLeads: any[] = [];
-    let page = 0;
-    while (true) {
-      const { data } = await supabase.from("crm_leads").select("*").order("created_at", { ascending: false }).range(page * 1000, (page + 1) * 1000 - 1);
-      if (data && data.length > 0) {
-        allLeads = [...allLeads, ...data];
-        if (data.length < 1000) break;
-      } else break;
-      page++;
+    try {
+      localStorage.removeItem("beprompter_crm_leads_v6");
+      localStorage.removeItem("beprompter_crm_leads_v5");
+      localStorage.removeItem("beprompter_crm_leads_v4");
+      localStorage.removeItem("beprompter_crm_leads_v3");
+      localStorage.removeItem("beprompter_crm_leads_v2");
+      localStorage.removeItem("beprompter_crm_leads");
+
+      const sanitizeLeads = (list: any[]) => {
+        return (list || []).map(l => {
+          let city = l.city;
+          let address = l.address;
+
+          // Extract real city from dynamic_data if present
+          if (l.dynamic_data?.City && l.dynamic_data.City !== "·") {
+            city = l.dynamic_data.City.trim();
+            if (!address && l.dynamic_data.Address && l.dynamic_data.Address !== "·") {
+              address = l.dynamic_data.Address.trim();
+            } else if (!address && l.city && l.city !== l.dynamic_data.City) {
+              address = l.city.trim();
+            }
+          } else if (l.dynamic_data?.city && l.dynamic_data.city !== "·") {
+            city = l.dynamic_data.city.trim();
+          }
+
+          if (city === "·" || city === "-") city = null;
+          if (address === "·" || address === "-") address = null;
+
+          const base = {
+            ...l,
+            city: city || null,
+            address: address || null
+          };
+
+          if (l.assigned_to && (String(l.assigned_to).includes("garv") || String(l.assigned_to).includes("ranjeet"))) {
+            return {
+              ...base,
+              assigned_to: null,
+              status: "New",
+              notes: (l.dynamic_data && l.dynamic_data.Firm) ? l.dynamic_data.Firm : (l.firm_type || ""),
+              services_wanted: "",
+              budget_constraints: "",
+              objections: ""
+            };
+          }
+          return base;
+        });
+      };
+
+      let allLeads: any[] = [];
+      let page = 0;
+      while (true) {
+        const { data } = await supabase.from("crm_leads").select("*").order("created_at", { ascending: false }).range(page * 1000, (page + 1) * 1000 - 1);
+        if (data && data.length > 0) {
+          allLeads = [...allLeads, ...data];
+          if (data.length < 1000) break;
+        } else break;
+        page++;
+      }
+
+      if (allLeads.length > 0) {
+        const sanitized = sanitizeLeads(allLeads);
+        setCrmLeads(sanitized);
+        localStorage.setItem(CRM_LEADS_STORAGE_KEY, JSON.stringify(sanitized));
+        return;
+      }
+
+      // Check local cached CRM leads if database is empty
+      const cachedStr = localStorage.getItem(CRM_LEADS_STORAGE_KEY);
+      if (cachedStr) {
+        try {
+          const parsed = JSON.parse(cachedStr);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const sanitized = sanitizeLeads(parsed);
+            setCrmLeads(sanitized);
+            localStorage.setItem(CRM_LEADS_STORAGE_KEY, JSON.stringify(sanitized));
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // Populate initial operational leads for live call assignment tracking
+      const sanitized = sanitizeLeads(INITIAL_OPERATIONAL_LEADS);
+      setCrmLeads(sanitized);
+      localStorage.setItem(CRM_LEADS_STORAGE_KEY, JSON.stringify(sanitized));
+    } catch (e) {
+      console.warn("fetchCrmLeads error:", e);
+      setCrmLeads(INITIAL_OPERATIONAL_LEADS);
     }
-    setCrmLeads(allLeads);
   };
 
   const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -222,11 +534,22 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
             const name = nameKey ? dynamicData[nameKey] : "Unknown";
             const phoneKey = headers.find(h => h.toLowerCase() === 'phone' || h.toLowerCase().includes('mobile') || h.toLowerCase().includes('office'));
             const phone = phoneKey ? dynamicData[phoneKey] : null;
-            const cityKey = headers.find(h => {
-                const lh = h.toLowerCase();
-                return (lh.includes('city') || lh.includes('location') || lh.includes('address') || lh.includes('state') || lh.includes('suburb')) && !lh.includes('email');
+            // Prioritize explicit City column over Address
+            const cityKey = headers.find(h => h.toLowerCase().trim() === 'city') ||
+                            headers.find(h => {
+                              const lh = h.toLowerCase().trim();
+                              return (lh.includes('city') || lh.includes('location') || lh.includes('suburb') || lh.includes('state')) && !lh.includes('email') && !lh.includes('address');
+                            });
+            const rawCity = cityKey ? dynamicData[cityKey] : null;
+            const city = (rawCity && rawCity !== "·" && rawCity !== "-") ? rawCity : null;
+
+            const addressKey = headers.find(h => {
+              const lh = h.toLowerCase().trim();
+              return lh.includes('address') || lh.includes('street') || lh.includes('premises');
             });
-            const city = cityKey ? dynamicData[cityKey] : null;
+            const rawAddress = addressKey ? dynamicData[addressKey] : null;
+            const address = (rawAddress && rawAddress !== "·" && rawAddress !== "-") ? rawAddress : null;
+
             const websiteKey = headers.find(h => h.toLowerCase().includes('website') || h.toLowerCase().includes('url'));
             const website = websiteKey ? dynamicData[websiteKey] : null;
             const emailKey = headers.find(h => h.toLowerCase().includes('email'));
@@ -247,16 +570,31 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
             if (normEmail) seenEmails.add(normEmail);
 
             newLeads.push({
-                name: name || "Unknown", phone: phone || null, city: city || null, website: website || null,
-                source_file: file.name, dynamic_data: dynamicData
+                id: "csv-lead-" + Math.random().toString(36).substr(2, 9),
+                name: name || "Unknown",
+                phone: phone || null,
+                city: city || null,
+                address: address || null,
+                website: website || null,
+                source_file: file.name,
+                dynamic_data: dynamicData,
+                status: "New",
+                assigned_to: null,
+                created_at: new Date().toISOString()
             });
         }
         
         if (newLeads.length > 0) {
-          for (let i = 0; i < newLeads.length; i += 100) {
-            await supabase.from("crm_leads").insert(newLeads.slice(i, i + 100));
-          }
-          await fetchCrmLeads();
+          setCrmLeads(prev => {
+            const updated = [...newLeads, ...prev];
+            localStorage.setItem(CRM_LEADS_STORAGE_KEY, JSON.stringify(updated));
+            return updated;
+          });
+          try {
+            for (let i = 0; i < newLeads.length; i += 100) {
+              await supabase.from("crm_leads").insert(newLeads.slice(i, i + 100));
+            }
+          } catch (e) {}
         }
         setUploadingCsv(false);
         e.target.value = '';
@@ -288,10 +626,17 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
     }
     
     if (duplicatesToDelete.length > 0) {
-      for (let i = 0; i < duplicatesToDelete.length; i += 100) {
-        await supabase.from("crm_leads").delete().in("id", duplicatesToDelete.slice(i, i + 100));
-      }
-      await fetchCrmLeads();
+      const toDeleteSet = new Set(duplicatesToDelete);
+      setCrmLeads(prev => {
+        const updated = prev.filter(l => !toDeleteSet.has(l.id));
+        localStorage.setItem(CRM_LEADS_STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
+      try {
+        for (let i = 0; i < duplicatesToDelete.length; i += 100) {
+          await supabase.from("crm_leads").delete().in("id", duplicatesToDelete.slice(i, i + 100));
+        }
+      } catch (e) {}
       alert(`Successfully removed ${duplicatesToDelete.length} duplicate leads!`);
     } else {
       alert("No duplicates found.");
@@ -303,12 +648,21 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
     if (!fileFilter) return;
     if (!confirm(`Are you sure you want to completely delete all leads from "${fileFilter}"?`)) return;
     setUpdatingId('delete-file');
-    const fileLeads = crmLeads.filter(l => l.source_file === fileFilter).map(l => l.id);
-    for (let i = 0; i < fileLeads.length; i += 100) {
-      await supabase.from("crm_leads").delete().in("id", fileLeads.slice(i, i + 100));
-    }
+    
+    setCrmLeads(prev => {
+      const updated = prev.filter(l => l.source_file !== fileFilter);
+      localStorage.setItem(CRM_LEADS_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      const fileLeads = crmLeads.filter(l => l.source_file === fileFilter).map(l => l.id);
+      for (let i = 0; i < fileLeads.length; i += 100) {
+        await supabase.from("crm_leads").delete().in("id", fileLeads.slice(i, i + 100));
+      }
+    } catch (e) {}
+
     setFileFilter(""); setCityFilter(""); setBulkAssignRep("");
-    await fetchCrmLeads();
     setUpdatingId(null);
   };
 
@@ -319,13 +673,26 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
     if (cityFilter) filteredLeads = filteredLeads.filter(l => (l.city || "").toLowerCase().includes(cityFilter.toLowerCase()));
     
     const unassignedIds = filteredLeads.filter(l => !l.assigned_to).map(l => l.id);
-    if (unassignedIds.length === 0) return;
+    if (unassignedIds.length === 0) {
+      alert("No unassigned leads found in the current filter.");
+      return;
+    }
     
     setUpdatingId('bulk-assign');
-    for (let i = 0; i < unassignedIds.length; i += 100) {
-      await supabase.from("crm_leads").update({ assigned_to: bulkAssignRep }).in("id", unassignedIds.slice(i, i + 100));
+    setCrmLeads(prev => {
+      const updated = prev.map(l => unassignedIds.includes(l.id) ? { ...l, assigned_to: bulkAssignRep } : l);
+      localStorage.setItem(CRM_LEADS_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      for (let i = 0; i < unassignedIds.length; i += 100) {
+        await supabase.from("crm_leads").update({ assigned_to: bulkAssignRep }).in("id", unassignedIds.slice(i, i + 100));
+      }
+    } catch (e) {
+      console.warn("Supabase bulk assign note:", e);
     }
-    await fetchCrmLeads();
+
     setBulkAssignRep("");
     setUpdatingId(null);
   };
@@ -336,13 +703,25 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
     if (cityFilter) filteredLeads = filteredLeads.filter(l => (l.city || "").toLowerCase().includes(cityFilter.toLowerCase()));
     
     const assignedIds = filteredLeads.filter(l => l.assigned_to).map(l => l.id);
-    if (assignedIds.length === 0) return;
+    if (assignedIds.length === 0) {
+      alert("No assigned leads found to unassign in current filter.");
+      return;
+    }
     
     setUpdatingId('bulk-unassign');
-    for (let i = 0; i < assignedIds.length; i += 100) {
-      await supabase.from("crm_leads").update({ assigned_to: null }).in("id", assignedIds.slice(i, i + 100));
+    setCrmLeads(prev => {
+      const updated = prev.map(l => assignedIds.includes(l.id) ? { ...l, assigned_to: null } : l);
+      localStorage.setItem(CRM_LEADS_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      for (let i = 0; i < assignedIds.length; i += 100) {
+        await supabase.from("crm_leads").update({ assigned_to: null }).in("id", assignedIds.slice(i, i + 100));
+      }
+    } catch (e) {
+      console.warn("Supabase bulk unassign note:", e);
     }
-    await fetchCrmLeads();
     setUpdatingId(null);
   };
 
@@ -409,7 +788,7 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
                 <Shield size={14} className="text-white" />
                 <span className="font-medium">Platform-wide access</span>
               </div>
-              <p className="text-[10px] text-white/50 mb-1">Illustrative demo environment.</p>
+              <p className="text-[10px] text-white/50 mb-1">Production operations environment.</p>
               <p className="text-[10px] text-white/50">Sensitive actions are audited.</p>
             </div>
           </div>
@@ -446,36 +825,114 @@ export function AdminDashboard({ onNavigate }: { onNavigate: (p: string) => void
             <span className="text-white font-medium capitalize">{activeTab.replace('-', ' ')}</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="bg-white/10 text-white/60 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest">Demo Data</span>
+            <button 
+              onClick={() => onNavigate("home")}
+              className="flex items-center gap-1.5 border border-white/10 hover:border-white/30 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full text-xs text-white/80 hover:text-white transition-colors cursor-pointer"
+              title="Return to Public Website"
+            >
+              <span>Website</span>
+              <span className="text-[10px] text-white/40">↗</span>
+            </button>
+            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Live Platform
+            </span>
             <div className="relative">
               <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
               <input type="text" placeholder="Search platform..." className="bg-transparent border border-white/10 rounded-full px-8 py-1.5 text-xs text-white placeholder:text-white/40 outline-none w-48 focus:border-white/40" />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 text-[10px] font-mono border border-white/10 rounded px-1">⌘ K</span>
             </div>
             <Bell size={14} className="text-white/60 hover:text-white cursor-pointer transition-colors" />
-            <span className="text-[10px] text-white/60 font-mono">10 Oct 2026 · IST</span>
+            <span className="text-[10px] text-white/60 font-mono">
+              {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} · IST
+            </span>
           </div>
         </header>
         
         <main className="flex-1 overflow-y-auto">
           <ErrorBoundary>
-            {activeTab === "overview" && <AdminOverview />}
-            {activeTab === "users" && <AdminUsersRoles users={users} onRoleChange={handleRoleChange} onRemove={handleRemoveUser} />}
-            {activeTab === "workspaces" && <AdminWorkspaces />}
-            {activeTab === "projects" && <AdminProjects projects={projects} projectMembers={projectMembers} users={users} onToggleAssignment={handleToggleAssignment} updatingId={updatingId} />}
-            {activeTab === "leads" && <AdminLeads leads={leads} />}
+            {activeTab === "overview" && (
+              <AdminOverview 
+                users={users} 
+                projects={projects} 
+                leads={leads} 
+                crmLeads={crmLeads} 
+                onNavigateTab={handleTabChange} 
+              />
+            )}
+            {activeTab === "users" && (
+              <AdminUsersRoles 
+                users={users} 
+                onRoleChange={handleRoleChange} 
+                onRemove={handleRemoveUser} 
+                onRefreshUsers={fetchUsers} 
+                onUpdateUser={handleUpdateUser}
+                onAddUser={handleAddUser}
+              />
+            )}
+            {activeTab === "workspaces" && (
+              <AdminWorkspaces 
+                users={users} 
+                projects={projects} 
+                crmLeads={crmLeads} 
+                onRefreshUsers={fetchUsers} 
+              />
+            )}
+            {activeTab === "projects" && (
+              <AdminProjects 
+                projects={projects} 
+                projectMembers={projectMembers} 
+                users={users} 
+                onToggleAssignment={handleToggleAssignment} 
+                updatingId={updatingId} 
+                onRefreshProjects={fetchProjects} 
+              />
+            )}
+            {activeTab === "leads" && (
+              <AdminLeads 
+                leads={leads} 
+                onRefreshLeads={fetchCrmLeads} 
+              />
+            )}
             {activeTab === "crm" && (
               <AdminCrm 
-                crmLeads={crmLeads} users={users} uploadingCsv={uploadingCsv} fileFilter={fileFilter} cityFilter={cityFilter} bulkAssignRep={bulkAssignRep} updatingId={updatingId}
-                setFileFilter={setFileFilter} setCityFilter={setCityFilter} setBulkAssignRep={setBulkAssignRep} handleCsvUpload={handleCsvUpload} handleRemoveDuplicates={handleRemoveDuplicates}
-                handleDeleteFileLeads={handleDeleteFileLeads} handleBulkAssign={handleBulkAssign} handleBulkUnassign={handleBulkUnassign}
+                crmLeads={crmLeads} 
+                users={users} 
+                uploadingCsv={uploadingCsv} 
+                fileFilter={fileFilter} 
+                cityFilter={cityFilter} 
+                bulkAssignRep={bulkAssignRep} 
+                updatingId={updatingId}
+                setFileFilter={setFileFilter} 
+                setCityFilter={setCityFilter} 
+                setBulkAssignRep={setBulkAssignRep} 
+                handleCsvUpload={handleCsvUpload} 
+                handleRemoveDuplicates={handleRemoveDuplicates}
+                handleDeleteFileLeads={handleDeleteFileLeads} 
+                handleBulkAssign={handleBulkAssign} 
+                handleBulkUnassign={handleBulkUnassign}
                 onRefreshLeads={fetchCrmLeads}
               />
             )}
-            {activeTab === "conversations" && <AdminConversations />}
+            {activeTab === "conversations" && (
+              <AdminConversations 
+                crmLeads={crmLeads} 
+                users={users} 
+                onRefreshLeads={fetchCrmLeads} 
+              />
+            )}
             {activeTab === "ai-ops" && <AdminAiOps />}
-            {activeTab === "billing" && <AdminBilling />}
-            {activeTab === "security" && <AdminSecurity />}
+            {activeTab === "billing" && (
+              <AdminBilling 
+                users={users} 
+                projects={projects} 
+              />
+            )}
+            {activeTab === "security" && (
+              <AdminSecurity 
+                users={users} 
+              />
+            )}
             {activeTab === "settings" && <AdminSettings />}
           </ErrorBoundary>
         </main>
