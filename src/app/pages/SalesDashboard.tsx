@@ -141,17 +141,25 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
         return results;
       };
 
+      // Fetch ALL profile rows for this email — admin's deduplicateProfiles may have
+      // picked a DIFFERENT profile UUID than user.id when bulk-assigning leads.
+      // We must query with every UUID associated with this email.
+      const { data: allProfiles } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", repEmail);
+      const allProfileIds = (allProfiles || []).map((p: any) => p.id).filter(Boolean);
+
       // Build a broad OR filter covering all possible assigned_to formats:
-      //   - Namita's auth UUID (from supabase.auth.getUser)
-      //   - Namita's profile id (in case profile.id differs from auth user.id)
+      //   - Every profile UUID for this email (catches duplicate profile scenarios)
+      //   - Auth UUID (user.id)
       //   - Full email string
       //   - Username prefix (namitakumari4000)
-      //   - ilike pattern on name fragment (namitakumari) to catch any partial/display-name writes
-      const profileId = (data as any)?.id;  // profile row id
-      const orParts: string[] = [`assigned_to.eq.${user.id}`];
-      if (profileId && profileId !== user.id) orParts.push(`assigned_to.eq.${profileId}`);
+      //   - ilike pattern on name fragment (namitakumari) to catch partial/display-name writes
+      const idSet = new Set<string>([user.id, ...allProfileIds]);
+      const orParts: string[] = Array.from(idSet).map(id => `assigned_to.eq.${id}`);
       if (repEmail) orParts.push(`assigned_to.eq.${repEmail}`);
-      if (repUsername && repUsername !== user.id) orParts.push(`assigned_to.eq.${repUsername}`);
+      if (repUsername && !idSet.has(repUsername)) orParts.push(`assigned_to.eq.${repUsername}`);
       if (repNameFragment && repNameFragment.length >= 4) {
         orParts.push(`assigned_to.ilike.%${repNameFragment}%`);
       }
