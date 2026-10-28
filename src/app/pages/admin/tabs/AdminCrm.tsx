@@ -47,7 +47,7 @@ export function AdminCrm({
   handleBulkUnassign,
   onRefreshLeads
 }: AdminCrmProps) {
-  const CRM_LEADS_STORAGE_KEY = "beprompter_crm_leads_v6";
+  const CRM_LEADS_STORAGE_KEY = "beprompter_crm_leads_v7";
 
   // Sanitize any false legacy assignments
   const sanitizeLeads = (list: any[]) => {

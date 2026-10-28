@@ -141,9 +141,15 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
         return results;
       };
 
-      // Build a broad OR filter: exact UUID + exact email + ilike on name fragment
-      // This mirrors what isLeadAssignedToRep does client-side
+      // Build a broad OR filter covering all possible assigned_to formats:
+      //   - Namita's auth UUID (from supabase.auth.getUser)
+      //   - Namita's profile id (in case profile.id differs from auth user.id)
+      //   - Full email string
+      //   - Username prefix (namitakumari4000)
+      //   - ilike pattern on name fragment (namitakumari) to catch any partial/display-name writes
+      const profileId = (data as any)?.id;  // profile row id
       const orParts: string[] = [`assigned_to.eq.${user.id}`];
+      if (profileId && profileId !== user.id) orParts.push(`assigned_to.eq.${profileId}`);
       if (repEmail) orParts.push(`assigned_to.eq.${repEmail}`);
       if (repUsername && repUsername !== user.id) orParts.push(`assigned_to.eq.${repUsername}`);
       if (repNameFragment && repNameFragment.length >= 4) {
@@ -152,12 +158,12 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
 
       const rawLeads = await fetchAllPagesByOr(orParts.join(","));
 
-      // Deduplicate by ID, then do a strict client-side filter using isLeadAssignedToRep
-      // to drop any false positives from the broad ilike query
+      // Deduplicate by ID only — trust the DB query filter (no client-side isLeadAssignedToRep
+      // drop, since the ilike-scoped OR already limits to this rep's leads)
       const seenIds = new Set<string>();
       let allLeads: any[] = [];
       for (const lead of rawLeads) {
-        if (!seenIds.has(lead.id) && isLeadAssignedToRep(lead.assigned_to, { id: user.id, email: repEmail })) {
+        if (!seenIds.has(lead.id)) {
           seenIds.add(lead.id);
           allLeads.push(lead);
         }
