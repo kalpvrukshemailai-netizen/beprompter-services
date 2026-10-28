@@ -112,19 +112,24 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
       setProfile(data as Profile);
       
       // Fetch CRM leads assigned to this sales rep.
-      // Leads may be stored with assigned_to as: UUID, email, or username prefix.
-      // We query all three variants in parallel and deduplicate by ID.
+      // assigned_to can be stored as UUID, full email, username prefix, or any
+      // partial string (e.g. "namitakumari", "namitakumari4000", full email, UUID).
+      // Strategy: fetch a broad candidate set from DB using ilike patterns + exact
+      // UUID, then do a final client-side pass with isLeadAssignedToRep to be accurate.
       const repEmail = user.email || "";
-      const repUsername = repEmail ? repEmail.split("@")[0] : "";
+      const repUsername = repEmail ? repEmail.split("@")[0] : ""; // e.g. "namitakumari4000"
+      // Core name fragment used for ilike (everything before digits, or first 8 chars)
+      const repNameFragment = repUsername.replace(/[0-9]+$/, "") || repUsername.slice(0, 8);
+      // e.g. "namitakumari"
 
-      const fetchAllPages = async (filterKey: string, filterVal: string): Promise<any[]> => {
+      const fetchAllPagesByOr = async (orFilter: string): Promise<any[]> => {
         const results: any[] = [];
         let pg = 0;
         const pageSize = 1000;
         while (true) {
           const { data: chunk } = await supabase.from("crm_leads")
             .select("*")
-            .eq(filterKey, filterVal)
+            .or(orFilter)
             .order("created_at", { ascending: false })
             .range(pg * pageSize, (pg + 1) * pageSize - 1);
           if (chunk && chunk.length > 0) {
@@ -136,18 +141,23 @@ export function SalesDashboard({ onNavigate }: { onNavigate: (p: string) => void
         return results;
       };
 
-      // Run all three queries in parallel
-      const [byId, byEmail, byUsername] = await Promise.all([
-        fetchAllPages("assigned_to", user.id),
-        repEmail ? fetchAllPages("assigned_to", repEmail) : Promise.resolve([]),
-        repUsername ? fetchAllPages("assigned_to", repUsername) : Promise.resolve([]),
-      ]);
+      // Build a broad OR filter: exact UUID + exact email + ilike on name fragment
+      // This mirrors what isLeadAssignedToRep does client-side
+      const orParts: string[] = [`assigned_to.eq.${user.id}`];
+      if (repEmail) orParts.push(`assigned_to.eq.${repEmail}`);
+      if (repUsername && repUsername !== user.id) orParts.push(`assigned_to.eq.${repUsername}`);
+      if (repNameFragment && repNameFragment.length >= 4) {
+        orParts.push(`assigned_to.ilike.%${repNameFragment}%`);
+      }
 
-      // Merge and deduplicate
+      const rawLeads = await fetchAllPagesByOr(orParts.join(","));
+
+      // Deduplicate by ID, then do a strict client-side filter using isLeadAssignedToRep
+      // to drop any false positives from the broad ilike query
       const seenIds = new Set<string>();
       let allLeads: any[] = [];
-      for (const lead of [...byId, ...byEmail, ...byUsername]) {
-        if (!seenIds.has(lead.id)) {
+      for (const lead of rawLeads) {
+        if (!seenIds.has(lead.id) && isLeadAssignedToRep(lead.assigned_to, { id: user.id, email: repEmail })) {
           seenIds.add(lead.id);
           allLeads.push(lead);
         }
